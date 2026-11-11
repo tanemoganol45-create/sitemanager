@@ -126,7 +126,7 @@ body.clientmode #clientApp{display:block}
 </head>
 <body>
 <div class="header">
-  <div id="hdrHub" class="logo"><div class="logo-icon" id="logoN">M</div><div><h1>SITE MANAGER</h1><div class="hsub" id="topInfo">SITE MANAGER · V22.1</div></div></div>
+  <div id="hdrHub" class="logo"><div class="logo-icon" id="logoN">M</div><div><h1>SITE MANAGER</h1><div class="hsub" id="topInfo">SITE MANAGER · V22.2</div></div></div>
   <div id="hdrSite" class="logo hidden"><button class="backbtn" onclick="quitterChantier()">←</button><div><h1 id="hs_nom"></h1><div class="hsub" id="hs_sub"></div></div></div>
   <div style="display:flex;align-items:center;gap:2px">
     <div class="syncb" id="syncBadge" onclick="ouvrirSync()">☁️ non connecté</div>
@@ -221,6 +221,19 @@ body.clientmode #clientApp{display:block}
     <select id="fc_statut"><option value="en cours">En cours</option><option value="en pause">En pause</option><option value="terminé">Terminé</option></select>
     <label>Notes</label><textarea id="fc_notes" rows="2" placeholder="Adresse, remarques..."></textarea>
     <label class="chk" style="margin-top:8px"><input type="checkbox" id="fc_test"> 🧪 Chantier de test (exclu des totaux, des alertes et de la moyenne)</label>
+  </div>
+
+  <div class="card adm" id="card_docs">
+    <h3>📎 Documents du projet</h3>
+    <div class="note">Plans, notes de calcul, devis, contrats, photos. Un <b>fichier</b> est gardé sur l'appareil où tu l'ajoutes ; un <b>lien</b> (Google Drive, etc.) est partagé sur tous tes appareils. Les fichiers ne sont pas inclus dans la sauvegarde JSON.</div>
+    <div id="cd_corps">
+      <div id="cd_liste"></div>
+      <label>Type du document</label><select id="cd_cat"><option>Plan</option><option>Note de calcul</option><option>Devis</option><option>Contrat</option><option>Photo</option><option>Autre</option></select>
+      <input type="file" id="cd_file" multiple accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.dwg,.zip" style="display:none" onchange="cdAjouterFichiers(this)">
+      <button class="btn btn-save" onclick="$('cd_file').click()">📄 Ajouter un fichier (PDF, photo, plan)</button>
+      <div class="grid2"><div><input id="cd_lien_t" placeholder="Titre du lien"></div><div><input id="cd_lien_u" placeholder="https://..."></div></div>
+      <button class="btn btn-grey" onclick="cdAjouterLien()">🔗 Ajouter un lien</button>
+    </div>
   </div>
 
   <div class="card adm" id="card_avlots">
@@ -443,6 +456,10 @@ body.clientmode #clientApp{display:block}
       <button class="btn btn-save" onclick="docAjouterLot()">➕ Ajouter ce lot au devis</button>
       <label>Ou partir d'un modèle (liste de lots)</label><select id="dc_mod_sel"></select>
       <button class="btn btn-grey" onclick="docAjouterModele()">📐 Ajouter tous les lots du modèle</button>
+      <label>📋 Ou coller des lignes (Excel, WhatsApp, ou préparées par Claude)</label>
+      <textarea id="dc_paste" rows="4" placeholder="LOT Fondations&#10;Ciment ; sac ; 150 ; 5300&#10;Fer tor Ø10 ; barre ; 80 ; 4800"></textarea>
+      <div class="note">Une ligne par article : désignation ; unité ; quantité ; prix. Une ligne « LOT Nom » ouvre un nouveau lot.</div>
+      <button class="btn btn-grey" onclick="docColler()">📥 Ajouter ces lignes au devis</button>
     </div>
     <div class="card">
       <h3>Lignes</h3>
@@ -2081,7 +2098,7 @@ $('listeAlertes').addEventListener('click', e => {
 function nomEntreprise(){ const n = (store.get('proch_entreprise') || '').trim(); return n.toUpperCase() === 'NYOM BTP' ? '' : n; }
 function majEntreprise(){
   const n = nomEntreprise();
-  $('topInfo').innerText = (n ? 'SITE MANAGER • ' + n : 'SITE MANAGER') + ' · V22.1';
+  $('topInfo').innerText = (n ? 'SITE MANAGER • ' + n : 'SITE MANAGER') + ' · V22.2';
   $('logoN').textContent = 'M';
 }
 function sauverEntreprise(){
@@ -2175,7 +2192,7 @@ function ouvrirFicheChantier(id){
   remplirVis(d.vis || PRESETS.sanscouts);
   $('fc_suppr').style.display = c ? 'block' : 'none';
   $('fc_clientCard').style.display = c ? 'block' : 'none';
-  renderAvenants(); pcMajCarte(c); agRender(c); $('fc_test').checked = !!d.test; avlRender();
+  renderAvenants(); pcMajCarte(c); agRender(c); $('fc_test').checked = !!d.test; avlRender(); cdRender();
   openPage('fchantier');
 }
 function renommerChantier(ancien, nouveau){
@@ -2194,7 +2211,7 @@ function sauverFicheChantier(){
   const nom = $('fc_nom').value.trim();
   if(!nom) return toast('⚠️ Donne un nom au chantier');
   const reg = lireChantiers();
-  const id = $('fc_id').value;
+  const id = $('fc_id').value; let nouvelId = null;
   if(reg.some(c => norm(c.nom) === norm(nom) && c.id !== id)) return toast('⚠️ Un chantier porte déjà ce nom');
   const vis = {}; VIS_CLES.forEach(k => { vis[k] = $('fc_v_' + k).checked; });
   const data = {nom, client: $('fc_client').value.trim(), ville: $('fc_ville').value.trim(), chef: $('fc_chef').value.trim(),
@@ -2208,10 +2225,11 @@ function sauverFicheChantier(){
     else if(c && c.nom !== nom) renommerChantier(c.nom, nom);
     Object.assign(c, data);
   } else {
-    reg.push(Object.assign(nouveauChantier(nom), data));
+    nouvelId = nouveauChantier(nom); reg.push(Object.assign(nouvelId, data));
   }
   sauverChantiers(reg);
   majTop(); afficher();
+  if(nouvelId && MODE !== 'site'){ ouvrirFicheChantier(nouvelId.id); toast('✅ Chantier créé : ajoute maintenant ses documents et suis son avancement ci-dessous'); return; }
   if(MODE === 'site'){ setMode('site', SCOPE); $('chantier').value = SCOPE; openPage('saisie'); }
   else openPage('chantiers');
   toast('✅ Chantier enregistré');
@@ -5447,6 +5465,88 @@ function avlImporter(){
     c.avLots = S.map(s => { const o = old.find(x => norm(x.n) === norm(s.g)); return {id:o ? o.id : 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), n:s.g, w:tot > 0 ? Math.round(s.st / tot * 1000) / 10 : Math.round(1000 / S.length) / 10, p:o ? num(o.p) : 0}; });
   });
   toast('✅ ' + S.length + ' lots importés du devis ' + (d.numero || ''));
+}
+
+/* ---- V22.2 : documents du projet (fichiers gardés sur l'appareil + liens partagés) ---- */
+const CD_CATS = ['Plan', 'Note de calcul', 'Devis', 'Contrat', 'Photo', 'Autre'];
+const IDBF = {
+  db:null,
+  open(){ return new Promise((ok, ko) => { if(IDBF.db) return ok(IDBF.db); try{ const r = indexedDB.open('sitemanager_files', 1); r.onupgradeneeded = () => r.result.createObjectStore('f'); r.onsuccess = () => { IDBF.db = r.result; ok(IDBF.db); }; r.onerror = () => ko(r.error); }catch(e){ ko(e); } }); },
+  async run(mode, fn){ const db = await IDBF.open(); return new Promise((ok, ko) => { const tx = db.transaction('f', mode), st = tx.objectStore('f'), rq = fn(st); tx.oncomplete = () => ok(rq && rq.result); tx.onerror = () => ko(tx.error); tx.onabort = () => ko(tx.error); }); },
+  put(id, blob){ return IDBF.run('readwrite', s => s.put(blob, id)); },
+  get(id){ return IDBF.run('readonly', s => s.get(id)); },
+  del(id){ return IDBF.run('readwrite', s => s.delete(id)); },
+  async has(id){ try{ return !!(await IDBF.get(id)); }catch(e){ return false; } }
+};
+function cdMaj(f){ const c = avlChantier(); if(!c) return false; c.docs = c.docs || []; f(c); avlSauver(c); cdRender(); return true; }
+function cdTaille(n){ return n > 1048576 ? (n / 1048576).toFixed(1) + ' Mo' : Math.max(1, Math.round(n / 1024)) + ' Ko'; }
+async function cdRender(){
+  if(!$('cd_liste')) return;
+  const c = avlChantier();
+  $('cd_corps').style.display = c ? 'block' : 'none';
+  if(!c){ $('cd_liste').innerHTML = ''; return; }
+  const L = c.docs || [];
+  const ici = {}; for(const x of L) if(x.k === 'f') ici[x.id] = await IDBF.has(x.id);
+  $('cd_liste').innerHTML = L.length ? L.map(x => `<div class="item" style="padding:8px;margin:6px 0">
+      <b>${x.k === 'l' ? '🔗' : (/^image/.test(x.m || '') ? '🖼️' : '📄')} ${esc(x.n)}</b>
+      <div class="note">${esc(x.t || 'Autre')} · ${x.k === 'l' ? 'lien partagé' : cdTaille(num(x.sz)) + (ici[x.id] ? ' · 📱 sur cet appareil' : ' · ⚠️ ajouté depuis un autre appareil, absent ici')} · ${esc(dateFR(x.d))}</div>
+      <div style="display:flex;gap:6px"><button class="btn btn-save" style="padding:7px;flex:1;font-size:12px" ${x.k === 'f' && !ici[x.id] ? 'disabled' : ''} onclick="cdOuvrir('${x.id}')">Ouvrir</button>
+      <button class="btn btn-red" style="padding:7px;flex:1;font-size:12px" onclick="armer(this,'⚠️ Confirmer ?','🗑️ Retirer',()=>cdRetirer('${x.id}'))">🗑️ Retirer</button></div></div>`).join('')
+    : '<div class="note">Aucun document pour le moment.</div>';
+}
+async function cdAjouterFichiers(inp){
+  const c = avlChantier(); if(!c){ inp.value = ''; return toast('⚠️ Enregistre d\'abord le chantier'); }
+  const cat = $('cd_cat').value, fs = Array.from(inp.files || []); let n = 0;
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  for(const f of fs){
+    const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    try{ await IDBF.put(id, f); }catch(e){ toast('⚠️ Impossible de garder « ' + f.name + ' » sur cet appareil'); continue; }
+    cdMaj(c2 => { c2.docs.push({id, k:'f', n:f.name, t:cat, sz:f.size, m:f.type || '', d:dateISO(new Date())}); }); n++;
+  }
+  inp.value = ''; if(n) toast('✅ ' + n + ' fichier(s) ajouté(s)');
+}
+function cdAjouterLien(){
+  const t = ($('cd_lien_t').value || '').trim(), u = ($('cd_lien_u').value || '').trim();
+  if(!/^https?:\/\//i.test(u)) return toast('⚠️ Le lien doit commencer par https://');
+  if(cdMaj(c => { c.docs.push({id:'d' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), k:'l', n:t || u, t:$('cd_cat').value, u, d:dateISO(new Date())}); })){ $('cd_lien_t').value = ''; $('cd_lien_u').value = ''; toast('✅ Lien ajouté'); }
+}
+async function cdOuvrir(id){
+  const c = avlChantier(); const x = c && (c.docs || []).find(z => z.id === id); if(!x) return;
+  if(x.k === 'l'){ window.open(x.u, '_blank'); return; }
+  try{
+    const b = await IDBF.get(id); if(!b) return toast('⚠️ Ce fichier n\'est pas sur cet appareil');
+    const u = URL.createObjectURL(b);
+    const w = window.open(u, '_blank'); if(!w) location.href = u;
+  }catch(e){ toast('⚠️ Ouverture impossible'); }
+}
+async function cdRetirer(id){
+  try{ await IDBF.del(id); }catch(e){}
+  cdMaj(c => { c.docs = (c.docs || []).filter(x => x.id !== id); });
+}
+
+/* ---- V22.2 : coller des lignes dans un devis ---- */
+function docColler(){
+  const txt = ($('dc_paste').value || '').split(/\r?\n/);
+  const nb = v => { const s = String(v == null ? '' : v).replace(/FCFA|F CFA|XAF|F\b/gi, '').replace(/[\s  ]/g, '').replace(',', '.'); const n = parseFloat(s); return isNaN(n) ? NaN : n; };
+  let sec = '', ok = 0, ko = [];
+  docNettoyerVides();
+  txt.forEach(raw => {
+    const l = raw.trim(); if(!l) return;
+    const m = l.match(/^(?:lot\b|#+|==+)\s*[:\-–]?\s*(?:\d+\s*[-–:.]?\s*)?(.+)$/i);
+    if(m){ sec = m[1].replace(/=+$/, '').trim(); return; }
+    const p = l.split(/\t|;|\|/).map(x => x.trim());
+    let d, u = '', q = 1, pr;
+    if(p.length >= 4){ d = p[0]; u = p[1]; q = nb(p[2]); pr = nb(p[3]); }
+    else if(p.length === 3){ d = p[0]; q = nb(p[1]); pr = nb(p[2]); }
+    else if(p.length === 2){ d = p[0]; pr = nb(p[1]); }
+    else { ko.push(l); return; }
+    if(!d || isNaN(q) || isNaN(pr)){ ko.push(l); return; }
+    DOC.lignes.push({id:docIdLigne(), d, u, q, p:pr, g:sec}); ok++;
+  });
+  if(sec) DOC_OPEN.add(sec);
+  docRenderLignes();
+  toast(ok ? '✅ ' + ok + ' ligne(s) ajoutée(s)' + (ko.length ? ' · ' + ko.length + ' ignorée(s)' : '') : '⚠️ Aucune ligne reconnue');
+  if(ok && !ko.length) $('dc_paste').value = '';
 }
 
 function syncInit(){
