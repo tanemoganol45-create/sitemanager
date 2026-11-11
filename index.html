@@ -126,7 +126,7 @@ body.clientmode #clientApp{display:block}
 </head>
 <body>
 <div class="header">
-  <div id="hdrHub" class="logo"><div class="logo-icon" id="logoN">M</div><div><h1>SITE MANAGER</h1><div class="hsub" id="topInfo">SITE MANAGER · V21</div></div></div>
+  <div id="hdrHub" class="logo"><div class="logo-icon" id="logoN">M</div><div><h1>SITE MANAGER</h1><div class="hsub" id="topInfo">SITE MANAGER · V22.1</div></div></div>
   <div id="hdrSite" class="logo hidden"><button class="backbtn" onclick="quitterChantier()">←</button><div><h1 id="hs_nom"></h1><div class="hsub" id="hs_sub"></div></div></div>
   <div style="display:flex;align-items:center;gap:2px">
     <div class="syncb" id="syncBadge" onclick="ouvrirSync()">☁️ non connecté</div>
@@ -220,6 +220,20 @@ body.clientmode #clientApp{display:block}
     <label>Statut</label>
     <select id="fc_statut"><option value="en cours">En cours</option><option value="en pause">En pause</option><option value="terminé">Terminé</option></select>
     <label>Notes</label><textarea id="fc_notes" rows="2" placeholder="Adresse, remarques..."></textarea>
+    <label class="chk" style="margin-top:8px"><input type="checkbox" id="fc_test"> 🧪 Chantier de test (exclu des totaux, des alertes et de la moyenne)</label>
+  </div>
+
+  <div class="card adm" id="card_avlots">
+    <h3>📈 Avancement des travaux</h3>
+    <div class="note">Tu fixes toi-même le pourcentage de chaque lot après ta visite. L'avancement du chantier est la moyenne des lots, pondérée par leur poids (importance en %).</div>
+    <div id="avl_corps">
+      <div class="info" id="avl_synth"></div>
+      <div id="avl_liste"></div>
+      <button class="btn btn-excel" onclick="avlImporter()">📥 Importer les lots du devis du chantier</button>
+      <div class="grid2"><div><label>Nouveau lot</label><input id="avl_nom" placeholder="Ex: Fondations"></div><div><label>Poids (%)</label><input id="avl_poids" type="number" step="any" value="10"></div></div>
+      <button class="btn btn-grey" onclick="avlAjouter()">➕ Ajouter ce lot</button>
+      <div id="avl_man_box"><label>Sans lots : avancement global saisi à la main (%)</label><input id="avl_man" type="number" min="0" max="100" step="1" onchange="avlManuel(this.value)" placeholder="Laisse vide pour l'automatique (dépensé ÷ budget)"></div>
+    </div>
   </div>
 
   <div class="card adm bud" id="card_argent">
@@ -324,7 +338,7 @@ body.clientmode #clientApp{display:block}
     <h3>🔧 Installation du chantier & matériel</h3>
     <div id="inst_liste"></div>
     <details style="margin-top:8px"><summary style="font-size:13px;font-weight:800;color:#0284c7;cursor:pointer">➕ Ajouter une installation ou du matériel</summary>
-      <label>Groupe</label><select id="isGroupe"></select>
+      <label>Catégorie</label><select id="isGroupe"></select>
       <label>Désignation</label><input id="isNom" list="listeDesignations" placeholder="Ex: Bétonnière, Clôture, Hangar">
       <div class="grid3">
         <div><label>Quantité</label><input id="isQte" type="number" step="any" value="1"></div>
@@ -397,6 +411,7 @@ body.clientmode #clientApp{display:block}
     <div class="card">
       <h3 id="dh_titre">📄 Devis et bons de commande</h3>
       <button class="btn btn-save adm" onclick="docNouveau('devis')">➕ Nouveau devis</button>
+      <button class="btn btn-excel adm" id="dh_bib" onclick="openPage('biblio')">📚 Bibliothèque (articles, groupes, lots, modèles)</button>
       <button class="btn btn-save" id="dh_bc" onclick="docNouveau('bc')">➕ Nouveau bon de commande</button>
       <button class="btn btn-grey" id="dh_save" style="display:none" onclick="exporterJSON()">💾 Sauvegarder mes devis (fichier)</button>
       <div class="note" id="dh_note" style="display:none">Sauvegarde ce fichier de temps en temps : si tu perds ou changes de téléphone, tu pourras tout restaurer (Réglages > Sauvegarde).</div>
@@ -421,12 +436,21 @@ body.clientmode #clientApp{display:block}
         <label>Conditions de règlement</label><textarea id="dc_reglement" rows="2" placeholder="Ex: 30 % à la commande, 40 % à mi-chantier, 30 % à la réception"></textarea>
       </div>
     </div>
+    <div class="card" id="dc_bib_card">
+      <h3>📚 Composer avec la bibliothèque</h3>
+      <div class="note">Ajoute des lots tout faits : leurs articles arrivent avec la quantité et le prix de la bibliothèque, tu ajustes ensuite pour ce projet. Les lots se numérotent 100, 200, 300… tout seuls.</div>
+      <label>Ajouter un lot</label><select id="dc_lot_sel"></select>
+      <button class="btn btn-save" onclick="docAjouterLot()">➕ Ajouter ce lot au devis</button>
+      <label>Ou partir d'un modèle (liste de lots)</label><select id="dc_mod_sel"></select>
+      <button class="btn btn-grey" onclick="docAjouterModele()">📐 Ajouter tous les lots du modèle</button>
+    </div>
     <div class="card">
       <h3>Lignes</h3>
       <datalist id="dl_catalogue"></datalist>
       <datalist id="dl_sections"></datalist>
       <div id="dc_lignes"></div>
       <button class="btn btn-grey" id="dc_ajout" onclick="docAjouterLigne()">➕ Ajouter une ligne</button>
+      <div class="grid2" id="dc_newsec_box"><div><input id="dc_newsec" placeholder="Nom d'un nouveau lot (libre)"></div><div><button class="btn btn-grey" onclick="docNouvelleSection()">➕ Nouveau lot libre</button></div></div>
       <label class="chk fin" style="margin-top:10px"><input type="checkbox" id="dc_tva" onchange="docMajTotal()"> Ajouter la TVA</label>
       <div id="dc_taux_box" style="display:none"><label>Taux de TVA (%)</label><input type="number" step="any" id="dc_taux" value="19.25" oninput="docMajTotal()"></div>
       <div class="total-box fin" id="dc_total"></div>
@@ -448,6 +472,25 @@ body.clientmode #clientApp{display:block}
       <button class="btn btn-red" id="dc_supprimer" onclick="docSupprimer(this)">🗑️ Supprimer ce document</button>
     </div>
   </div>
+</div>
+
+<div id="page-biblio" class="page">
+  <div class="card adm">
+    <h3>📚 Bibliothèque</h3>
+    <div class="note">Articles → groupes d'articles → lots → modèles. Les prix de départ viennent du devis Duplex Mbouda ; tout se modifie. Elle sert à composer les devis très vite.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
+      <button class="btn btn-save" style="width:auto;flex:1;padding:9px 4px;font-size:12px" id="bt_art" onclick="bibTab('art')">Articles</button>
+      <button class="btn btn-grey" style="width:auto;flex:1;padding:9px 4px;font-size:12px" id="bt_grp" onclick="bibTab('grp')">Groupes</button>
+      <button class="btn btn-grey" style="width:auto;flex:1;padding:9px 4px;font-size:12px" id="bt_lot" onclick="bibTab('lot')">Lots</button>
+      <button class="btn btn-grey" style="width:auto;flex:1;padding:9px 4px;font-size:12px" id="bt_mod" onclick="bibTab('mod')">Modèles</button>
+    </div>
+    <div class="note" id="bib_aide"></div>
+    <div id="bib_art_tools"><input id="bib_q" placeholder="🔍 Chercher un article" oninput="bibRender()"><select id="bib_cat" onchange="bibRender()"></select></div>
+    <button class="btn btn-excel" id="bib_add" onclick="bibAjouterElem()">➕ Nouvel article</button>
+  </div>
+  <datalist id="dl_bib_art"></datalist><datalist id="dl_bib_grp"></datalist><datalist id="dl_bib_lot"></datalist><datalist id="dl_bib_cat"></datalist>
+  <div id="bib_liste"></div>
+  <div style="padding:10px"><button class="btn btn-grey" onclick="devisHub()">⬅️ Retour aux devis</button></div>
 </div>
 
 <div id="page-histo" class="page">
@@ -474,7 +517,7 @@ body.clientmode #clientApp{display:block}
     </div>
     <div class="info" id="sem_plage"></div>
     <button class="btn btn-orange" onclick="genererSemaine()">📄 GÉNÉRER LE RAPPORT DE LA SEMAINE</button>
-    <div class="note" style="margin-top:8px">La semaine va du lundi au dimanche. Le rapport additionne les fiches du chantier : matériaux par groupe, coûts, ouvriers, tâches, dépenses, installation du chantier et matériel. Tu peux l'imprimer ou l'envoyer par WhatsApp.</div>
+    <div class="note" style="margin-top:8px">La semaine va du lundi au dimanche. Le rapport additionne les fiches du chantier : matériaux par catégorie, coûts, ouvriers, tâches, dépenses, installation du chantier et matériel. Tu peux l'imprimer ou l'envoyer par WhatsApp.</div>
   </div>
 </div>
 
@@ -548,7 +591,7 @@ body.clientmode #clientApp{display:block}
 
   <details class="card adm" id="d_catalogue">
     <summary>🧱 Matériaux</summary>
-    <div class="note">Choisis un chantier : coche seulement les matériaux qu'il utilise (par exemple ciment hydro sans ciment ordinaire). Sans chantier, les cases règlent ce qui est proposé aux nouveaux chantiers. Tu peux renommer, changer le prix, l'unité ou le groupe, changer l'ordre avec ▲ ▼, et en ajouter.</div>
+    <div class="note">Choisis un chantier : coche seulement les matériaux qu'il utilise (par exemple ciment hydro sans ciment ordinaire). Sans chantier, les cases règlent ce qui est proposé aux nouveaux chantiers. Tu peux renommer, changer le prix, l'unité ou la catégorie, changer l'ordre avec ▲ ▼, et en ajouter.</div>
     <label>Chantier</label>
     <input id="cfgChantier" list="listeChantiers" placeholder="Nom du chantier (vide = par défaut)" oninput="renderCfg()">
     <div id="listeCfg"></div>
@@ -558,7 +601,7 @@ body.clientmode #clientApp{display:block}
       <div><label>Unité</label><input id="newUnite" placeholder="Ex: m³, pièces, kg"></div>
       <div><label>Prix (FCFA)</label><input id="newPrix" type="number" step="any" value="0"></div>
     </div>
-    <label>Groupe</label><select id="newGrp"></select>
+    <label>Catégorie</label><select id="newGrp"></select>
     <label>Suivi</label>
     <select id="newStock">
       <option value="1">Chaque jour (initial / reçu / utilisé / restant)</option>
@@ -572,7 +615,7 @@ body.clientmode #clientApp{display:block}
     <div class="note">Ce qu'on achète une fois, souvent au début des travaux : installation du chantier, bétonnière, aiguille vibrante, outillage... Ça n'entre pas dans les matériaux du jour. Un achat fait plus tard se note dans les « Divers » de la fiche.</div>
     <label>Chantier</label>
     <input id="matChantier" list="listeChantiers" placeholder="Nom du chantier" oninput="renderMateriel()">
-    <label>Groupe</label><select id="matGroupe"></select>
+    <label>Catégorie</label><select id="matGroupe"></select>
     <label>Désignation</label><input id="matNom" list="listeDesignations" placeholder="Ex: Bétonnière, Clôture en tôle, Hangar">
     <datalist id="listeDesignations"></datalist>
     <div class="grid3">
@@ -585,17 +628,17 @@ body.clientmode #clientApp{display:block}
   </details>
 
   <details class="card adm" id="d_groupes">
-    <summary>🗂️ Groupes et leur contenu</summary>
-    <div class="note">Les groupes rangent les matériaux (Ciment, Fer, Bois de coffrage...) et l'installation / le matériel. Renomme-les, ajoute-en, supprime ceux qui sont vides, et change leur ordre avec ▲ ▼. Touche « Modifier le contenu » sous un groupe pour déplacer un matériau vers un autre groupe, en ajouter un ou en créer un nouveau.</div>
+    <summary>🗂️ Catégories et leur contenu</summary>
+    <div class="note">Les catégories rangent les matériaux (Ciment, Fer, Bois de coffrage...) et l'installation / le matériel. Renomme-les, ajoute-en, supprime ceux qui sont vides, et change leur ordre avec ▲ ▼. Touche « Modifier le contenu » sous une catégorie pour déplacer un matériau vers une autre catégorie, en ajouter un ou en créer un nouveau.</div>
     <div id="listeGroupes"></div>
-    <div class="sec">➕ Ajouter un groupe</div>
-    <label>Nom du groupe</label><input id="gNom" placeholder="Ex: Peinture, Électricité, Plomberie...">
+    <div class="sec">➕ Ajouter une catégorie</div>
+    <label>Nom de la catégorie</label><input id="gNom" placeholder="Ex: Peinture, Électricité, Plomberie...">
     <label>Type</label>
     <select id="gType">
       <option value="stock">Matériaux suivis en stock (chaque jour)</option>
       <option value="achat">Installation / matériel acheté (une fois)</option>
     </select>
-    <button class="btn btn-save" onclick="ajouterGroupe()">Ajouter le groupe</button>
+    <button class="btn btn-save" onclick="ajouterGroupe()">Ajouter la catégorie</button>
   </details>
 
   <details class="card">
@@ -614,7 +657,7 @@ body.clientmode #clientApp{display:block}
 
   <details class="card">
     <summary>💾 Sauvegarde</summary>
-    <div class="note">Sauvegarde les fiches, les groupes, la liste des matériaux, le choix par chantier et le matériel.</div>
+    <div class="note">Sauvegarde les fiches, les catégories, la liste des matériaux, le choix par chantier et le matériel.</div>
     <button class="btn btn-save" onclick="exporterJSON()">⬇️ Sauvegarder (fichier JSON)</button>
     <label style="margin-top:14px">Restaurer depuis un fichier</label>
     <input type="file" id="fichierImport" accept=".json,application/json" onchange="importerJSON(this)">
@@ -750,6 +793,7 @@ const CLIENT_MODE = !!CLIENT_TOKEN;
 /* ================= STOCKAGE ================= */
 const KEY = 'proch_v3';                      // fiches (même clé que V3 à V6 : rien n'est perdu)
 const KEY_DOCS = 'proch_docs';
+const KEY_BIB = 'proch_biblio';            // V22 : bibliothèque (articles, groupes, lots, modèles)
 const KEY_PRIX = 'proch_prix_defaut';        // derniers prix utilisés
 const KEY_CFG = 'proch_materiaux_cfg';       // catalogue des matériaux
 const KEY_GRP = 'proch_groupes';             // groupes
@@ -1052,7 +1096,6 @@ const NAV_HUB = [
   {p:'chantiers', i:'🏗️', l:'Sites', go:"openPage('chantiers')"},
   {p:'docs', i:'📄', l:'Devis', go:"devisHub()", adm:true},
   {p:'alertes', i:'🔔', l:'Alertes', go:"openPage('alertes')"},
-  {plus:true},
   {p:'rapports', i:'📊', l:'Rapports', go:"openPage('rapports')"},
   {p:'plus', i:'⚙️', l:'Réglages', go:"openPage('plus')"}
 ];
@@ -1066,7 +1109,7 @@ const NAV_SITE = [
 ];
 function renderNav(){
   const items = (MODE === 'hub' ? NAV_HUB : NAV_SITE).filter(it => PERM.full || !(it.plus || it.adm || it.p === 'fchantier'));
-  const actif = (MODE === 'hub' && PAGE_COURANTE === 'fchantier') ? 'chantiers' : PAGE_COURANTE;
+  const actif = (MODE === 'hub' && PAGE_COURANTE === 'fchantier') ? 'chantiers' : (PAGE_COURANTE === 'biblio' ? 'docs' : PAGE_COURANTE);
   $('tabs').innerHTML = items.map(it => it.plus
     ? `<div class="b-item" onclick="ouvrirFicheChantier(null)"><div class="b-add">+</div>Ajouter</div>`
     : `<div class="b-item${it.p === actif ? ' active' : ''}" onclick="${it.go}">${it.i}<br>${it.l}</div>`).join('');
@@ -1097,6 +1140,7 @@ function openPage(n){
   if(n==='semaine') initSemaine();
   if(n==='plus') initPlus();
   if(n==='docs'){ if(MODE === 'site') DOCS_GLOBAL = false; renderDocs(); }
+  if(n==='biblio') bibRender();
   if(n==='pclient') pcRender();
   if(n==='clauses') clRender();
   window.scrollTo(0,0);
@@ -1252,7 +1296,7 @@ function moisResume(list){
   $('moisBox').innerHTML = fm.length ? `
     <div style="font-size:12px;margin-top:8px">${fm.length} fiche(s) sur ce mois</div>
     <table class="mois">
-      <tr><th>Groupe</th><th>Reçu (FCFA)</th><th>Utilisé (FCFA)</th></tr>
+      <tr><th>Catégorie</th><th>Reçu (FCFA)</th><th>Utilisé (FCFA)</th></tr>
       ${gs.map(g => `<tr><td>${esc(g.nom)}</td><td>${fmt(tot[g.id].recu)}</td><td>${fmt(tot[g.id].util)}</td></tr>`).join('')}
       <tr style="font-weight:900"><td>Total</td><td>${fmt(recu)}</td><td>${fmt(util)}</td></tr>
     </table>` : '<div style="font-size:12px;margin-top:8px;color:#64748b">Aucune fiche ce mois-ci</div>';
@@ -1556,7 +1600,8 @@ function modeleRapport(o){
   if(o.sansFiche && o.sansFiche.length) det.push({titre:'Jours sans fiche', lignes:[o.sansFiche.join(', ')]});
   const chef = [...fiches].reverse().map(f => f.chef).find(Boolean) || (c && c.chef) || '';
   return {titre: o.titre, ch: o.ch, periode: o.periode, chef, client: c && c.client, ville: c && c.ville,
-    avancement: V.avancement && c && budgetTotal(c) > 0 ? avanc(c) : null,
+    avManuel: avManuel(c),
+    avancement: V.avancement && c && (budgetTotal(c) > 0 || avManuel(c)) ? avanc(c) : null,
     montrerDep: !!(V.depenses || V.couts), dep, avs, totalGeneral, bcs: bcs.map(x => ({total:x.tva ? docTotal(x).ttc : docTotal(x).ht})), mats: V.stocks ? mats : null, montrerTaches: !!V.taches, taches, det, signature: !o.client};
 }
 function itemsRapport(m, detail){
@@ -1564,7 +1609,7 @@ function itemsRapport(m, detail){
   I.push({t:'title', s:m.titre});
   I.push({t:'info', s:'Chantier : ' + m.ch + (m.client ? ' | Client : ' + m.client : '') + (m.ville ? ' | ' + m.ville : '')});
   I.push({t:'info', s:m.periode + (m.chef ? ' | Chef de chantier : ' + m.chef : '')});
-  if(m.avancement !== null) I.push({t:'info', s:'Avancement : ' + m.avancement + ' % du budget'});
+  if(m.avancement !== null) I.push({t:'info', s:'Avancement : ' + m.avancement + (m.avManuel ? ' %' : ' % du budget')});
   let n = 0;
   if(m.montrerDep){
     I.push({t:'block', s:(++n) + '. Coût dépensé'});
@@ -1915,7 +1960,14 @@ function statsChantier(c){
 
 
 // V12 : avancement automatique = dépensé ÷ budget prévu (toutes dépenses : matériaux, transport, paye, divers)
+const avManuel = c => !!c && ((Array.isArray(c.avLots) && c.avLots.length > 0) || (c.avMan !== undefined && c.avMan !== null && c.avMan !== ''));
 function avanc(c){
+  if(Array.isArray(c.avLots) && c.avLots.length){
+    const L = c.avLots, tw = L.reduce((a, l) => a + Math.max(0, num(l.w)), 0);
+    const r = tw > 0 ? L.reduce((a, l) => a + Math.max(0, num(l.w)) * num(l.p), 0) / tw : L.reduce((a, l) => a + num(l.p), 0) / L.length;
+    return Math.max(0, Math.min(100, Math.round(r)));
+  }
+  if(c.avMan !== undefined && c.avMan !== null && c.avMan !== '') return Math.max(0, Math.min(100, Math.round(num(c.avMan))));
   const b = budgetTotal(c);
   if(!(b > 0)) return 0;
   return Math.max(0, Math.min(100, Math.round(statsChantier(c).depense * 100 / b)));
@@ -1928,6 +1980,7 @@ function joursDepuis(iso){
 }
 function etiquettes(c, s){
   const t = [];
+  if(c.test) t.push(['blue', '🧪 TEST']);
   if(c.statut === 'terminé') t.push(['green', 'TERMINÉ']);
   else if(c.statut === 'en pause') t.push(['blue', 'EN PAUSE']);
   else {
@@ -1946,6 +1999,7 @@ function carteChantier(x){
     <h3>${esc(c.nom)}</h3>
     <div class="loc">📍 ${esc(c.ville || '—')}${c.client ? ' · 👤 ' + esc(c.client) : ''}</div>
     <div class="bud" style="margin-top:10px"><b style="color:#0284c7">${av}%</b><div class="bar"><div class="fill" style="width:${av}%"></div></div></div>
+    ${(() => { const L = (c.avLots || []).find(l => num(l.p) < 100); return L ? `<div class="small" style="margin-top:4px">🔧 En cours : ${esc(L.n)} (${num(L.p)} %)</div>` : ''; })()}
     <div class="hmeta"><span>${s.last ? esc(dateFR(s.last)) : 'aucune fiche'}</span><span class="fin">${fmt(s.sem)} F cette sem.</span></div>
     ${etiquettes(c, s).map(([k, l]) => `<span class="tag ${k}">${l}</span>`).join('')}
   </div>`;
@@ -1954,12 +2008,13 @@ function renderChantiers(){
   try{ majBienvenue(); }catch(e){}
   const reg = lireChantiers();
   const tous = reg.map(c => ({c, s: statsChantier(c)}));
-  const actifs = tous.filter(x => x.c.statut === 'en cours');
-  const base = actifs.length ? actifs : tous;
+  const reels = tous.filter(x => !x.c.test);
+  const actifs = reels.filter(x => x.c.statut === 'en cours');
+  const base = actifs.length ? actifs : reels;
   const moy = base.length ? Math.round(base.reduce((a, x) => a + Math.min(100, avanc(x.c)), 0) / base.length) : 0;
   $('st_n').textContent = actifs.length + (actifs.length > 1 ? ' sites actifs' : ' site actif');
   $('st_pct').textContent = moy + '%';
-  $('st_dep').textContent = 'Dépensé cette semaine : ' + fmt(tous.reduce((a, x) => a + x.s.sem, 0)) + ' FCFA';
+  $('st_dep').textContent = 'Dépensé cette semaine : ' + fmt(reels.reduce((a, x) => a + x.s.sem, 0)) + ' FCFA';
 
   const q = norm($('ch_q').value), st = $('ch_statut').value, ta = $('ch_taille').value, tri = $('ch_tri').value || 'recent';
   let l = tous.filter(x => {
@@ -1989,7 +2044,7 @@ $('listeChantiersCards').addEventListener('click', e => {
 function calculerAlertes(){
   const out = [];
   lireChantiers().forEach(c => {
-    if(c.statut === 'terminé') return;
+    if(c.statut === 'terminé' || c.test) return;
     const s = statsChantier(c);
     s.alertes.forEach(a => out.push({c, ico: '📦', txt: 'Stock bas : ' + a.m.nom + ' (' + a.rest + ' ' + a.m.unite + ')'}));
     if(c.statut === 'en cours'){
@@ -2026,7 +2081,7 @@ $('listeAlertes').addEventListener('click', e => {
 function nomEntreprise(){ const n = (store.get('proch_entreprise') || '').trim(); return n.toUpperCase() === 'NYOM BTP' ? '' : n; }
 function majEntreprise(){
   const n = nomEntreprise();
-  $('topInfo').innerText = (n ? 'SITE MANAGER • ' + n : 'SITE MANAGER') + ' · V21';
+  $('topInfo').innerText = (n ? 'SITE MANAGER • ' + n : 'SITE MANAGER') + ' · V22.1';
   $('logoN').textContent = 'M';
 }
 function sauverEntreprise(){
@@ -2035,7 +2090,7 @@ function sauverEntreprise(){
   toast('✅ Nom enregistré');
 }
 function lignesGlobales(){
-  return lireChantiers().map(c => ({c, s: statsChantier(c)}));
+  return lireChantiers().filter(c => !c.test).map(c => ({c, s: statsChantier(c)}));
 }
 function renderRapportsGlobaux(){
   const l = lignesGlobales();
@@ -2120,7 +2175,7 @@ function ouvrirFicheChantier(id){
   remplirVis(d.vis || PRESETS.sanscouts);
   $('fc_suppr').style.display = c ? 'block' : 'none';
   $('fc_clientCard').style.display = c ? 'block' : 'none';
-  renderAvenants(); pcMajCarte(c); agRender(c);
+  renderAvenants(); pcMajCarte(c); agRender(c); $('fc_test').checked = !!d.test; avlRender();
   openPage('fchantier');
 }
 function renommerChantier(ancien, nouveau){
@@ -2145,7 +2200,7 @@ function sauverFicheChantier(){
   const data = {nom, client: $('fc_client').value.trim(), ville: $('fc_ville').value.trim(), chef: $('fc_chef').value.trim(),
     surface: num($('fc_surface').value), niveaux: num($('fc_niveaux').value), avancement: Math.max(0, Math.min(100, num($('fc_avancement').value))),
     budget: num($('fc_budget').value), convenu: num($('fc_convenu').value), debut: $('fc_debut').value, statut: $('fc_statut').value, notes: $('fc_notes').value.trim(),
-    preset: $('fc_preset').value, vis};
+    preset: $('fc_preset').value, vis, test: $('fc_test').checked};
   if(id){
     const c = reg.find(x => x.id === id);
     if(c && SCOPE && norm(SCOPE) === norm(c.nom)) SCOPE = nom;
@@ -2225,12 +2280,12 @@ function contenuGroupe(g){
     return `<details class="grp" data-gd="${esc(g.id)}"${ouv}><summary>✏️ Modifier le contenu <span class="cnt">${items.length}</span></summary>
       ${items.map(m => `<div class="item">
         <b>${esc(m.nom)}</b> <span class="note">(${esc(m.unite)} · ${m.stock ? 'chaque jour' : 'entrées seulement'})</span>
-        <label>Déplacer vers un autre groupe</label>
-        <select data-gmv="${esc(m.id)}"><option value="">Choisir un groupe…</option>${autresG.map(x => `<option value="${esc(x.id)}">${esc(x.nom)}</option>`).join('')}</select>
+        <label>Déplacer vers une autre catégorie</label>
+        <select data-gmv="${esc(m.id)}"><option value="">Choisir une catégorie…</option>${autresG.map(x => `<option value="${esc(x.id)}">${esc(x.nom)}</option>`).join('')}</select>
         <div class="row">
           <button class="btn btn-grey" style="padding:8px;font-size:13px" data-mmove="-1" data-m="${esc(m.id)}">▲</button>
           <button class="btn btn-grey" style="padding:8px;font-size:13px" data-mmove="1" data-m="${esc(m.id)}">▼</button>
-        </div></div>`).join('') || '<div class="note">Ce groupe est vide.</div>'}
+        </div></div>`).join('') || '<div class="note">Cette catégorie est vide.</div>'}
       <div class="sec">➕ Ajouter ici un matériau existant</div>
       <select data-gadd="${esc(g.id)}"><option value="">Choisir un matériau…</option>${autresM.map(m => `<option value="${esc(m.id)}">${esc(m.nom)} (${esc(grpNom(m.g))})</option>`).join('')}</select>
       <div class="sec">🆕 Créer un nouveau matériau ici</div>
@@ -2245,10 +2300,10 @@ function contenuGroupe(g){
   return `<details class="grp" data-gd="${esc(g.id)}"${ouv}><summary>✏️ Modifier le contenu <span class="cnt">${recs.length}</span></summary>
     ${recs.map(x => `<div class="item">
       <b>${esc(x.nom)}</b> <span class="note">× ${num(x.qte)} · ${esc(x.chantier)}</span>
-      ${autresG.length ? `<label>Déplacer vers un autre groupe</label>
-      <select data-gmt="${esc(x.id)}"><option value="">Choisir un groupe…</option>${autresG.map(h => `<option value="${esc(h.id)}">${esc(h.nom)}</option>`).join('')}</select>` : ''}
-      </div>`).join('') || '<div class="note">Ce groupe est vide.</div>'}
-    <button class="btn btn-save" style="padding:10px;font-size:13px" data-gaddmat="${esc(g.id)}">➕ Ajouter du matériel dans ce groupe</button>
+      ${autresG.length ? `<label>Déplacer vers une autre catégorie</label>
+      <select data-gmt="${esc(x.id)}"><option value="">Choisir une catégorie…</option>${autresG.map(h => `<option value="${esc(h.id)}">${esc(h.nom)}</option>`).join('')}</select>` : ''}
+      </div>`).join('') || '<div class="note">Cette catégorie est vide.</div>'}
+    <button class="btn btn-save" style="padding:10px;font-size:13px" data-gaddmat="${esc(g.id)}">➕ Ajouter du matériel dans cette catégorie</button>
   </details>`;
 }
 function renderGroupes(){
@@ -2350,22 +2405,22 @@ $('listeGroupes').addEventListener('click', e => {
   const id = b.dataset.gdel;
   const g = GROUPES.find(x => x.id === id);
   const plein = MATS.some(m => m.g === id) || lireJSON(KEY_MATOS, []).some(x => x.g === id);
-  if(plein) return toast('⚠️ Ce groupe n\'est pas vide : déplace ou supprime son contenu d\'abord');
-  if(GROUPES.filter(x => x.type === g.type).length <= 1) return toast('⚠️ Garde au moins un groupe de ce type');
+  if(plein) return toast('⚠️ Cette catégorie n\'est pas vide : déplace ou supprime son contenu d\'abord');
+  if(GROUPES.filter(x => x.type === g.type).length <= 1) return toast('⚠️ Garde au moins une catégorie de ce type');
   armer(b, '⚠️ Confirmer ?', '🗑️ Supprimer', () => {
     GROUPES = GROUPES.filter(x => x.id !== id);
     sauverGrp(); construireForm(); renderGroupes(); renderCfg(); renderMateriel();
-    toast('🗑️ Groupe supprimé');
+    toast('🗑️ Catégorie supprimée');
   });
 });
 function ajouterGroupe(){
   const nom = $('gNom').value.trim();
-  if(!nom) return toast('⚠️ Donne un nom au groupe');
+  if(!nom) return toast('⚠️ Donne un nom à la catégorie');
   GROUPES.push({id: 'g' + Date.now().toString(36), nom, type: $('gType').value});
   sauverGrp();
   $('gNom').value = '';
   renderGroupes(); renderCfg(); renderMateriel();
-  toast('✅ Groupe ajouté');
+  toast('✅ Catégorie ajoutée');
 }
 
 /* ---- Catalogue des matériaux ---- */
@@ -2383,7 +2438,7 @@ function renderCfg(){
         <div class="grid3">
           <div><label>Unité</label><input data-mid="${esc(m.id)}" data-fld="unite" value="${esc(m.unite)}"></div>
           <div><label>Prix défaut</label><input type="number" step="any" data-mid="${esc(m.id)}" data-fld="prix" value="${num(m.prix)}"></div>
-          <div><label>Groupe (changer)</label><select data-mid="${esc(m.id)}" data-fld="g">${optionsGroupes(groupesStock(), m.g)}</select></div>
+          <div><label>Catégorie (changer)</label><select data-mid="${esc(m.id)}" data-fld="g">${optionsGroupes(groupesStock(), m.g)}</select></div>
         </div>
         <label>Suivi</label>
         <select data-mid="${esc(m.id)}" data-fld="stock">
@@ -2460,7 +2515,7 @@ function deplacerMateriau(id, dir){
   const m = MATS[i];
   let j = i + dir;
   while(j >= 0 && j < MATS.length && !(MATS[j].g === m.g && !!MATS[j].stock === !!m.stock)) j += dir;
-  if(j < 0 || j >= MATS.length) return toast(dir < 0 ? 'Déjà en haut du groupe' : 'Déjà en bas du groupe');
+  if(j < 0 || j >= MATS.length) return toast(dir < 0 ? 'Déjà en haut de la catégorie' : 'Déjà en bas de la catégorie');
   [MATS[i], MATS[j]] = [MATS[j], MATS[i]];
   sauverCfg(); construireForm(); renderCfg(); renderGroupes();
 }
@@ -2625,7 +2680,7 @@ function exporterCSV(){
   telecharger(csv, 'SiteManager_historique_' + dateISO(new Date()) + '.csv', 'text/csv;charset=utf-8;');
 }
 function exporterJSON(){
-  const data = {version: 12, docs: lireDocs(), profil: lireJSON('proch_profil', null), entreprise: store.get('proch_entreprise'), registre: lireChantiers(), fiches: lireTout(), groupes: GROUPES, materiaux: MATS, chantiers: lireJSON(KEY_CH, {}), materiel: lireJSON(KEY_MATOS, []), clauses: lireJSON(KEY_CL, {}), versions: (function(){ const o = {}; try{ for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if(k && k.indexOf('proch_cl_ver_') === 0) o[k] = lireJSON(k, []); } }catch(e){} return o; })()};
+  const data = {version: 12, docs: lireDocs(), profil: lireJSON('proch_profil', null), entreprise: store.get('proch_entreprise'), registre: lireChantiers(), fiches: lireTout(), groupes: GROUPES, materiaux: MATS, chantiers: lireJSON(KEY_CH, {}), materiel: lireJSON(KEY_MATOS, []), clauses: lireJSON(KEY_CL, {}), biblio: lireJSON(KEY_BIB, null), versions: (function(){ const o = {}; try{ for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if(k && k.indexOf('proch_cl_ver_') === 0) o[k] = lireJSON(k, []); } }catch(e){} return o; })()};
   telecharger(JSON.stringify(data, null, 1), 'SiteManager_sauvegarde_' + dateISO(new Date()) + '.json', 'application/json');
 }
 function importerJSON(input){
@@ -2670,6 +2725,7 @@ function importerJSON(input){
           data.docs.forEach(x => { if(x && x.id && !dl.some(y => y.id === x.id)){ dl.push(x); nd++; } });
           if(nd) ecrireDocs(dl);
         }
+        if(data.biblio && Array.isArray(data.biblio.art)){ const loc = lireBib(); ['art', 'grp', 'lot', 'mod'].forEach(k => (data.biblio[k] || []).forEach(x => { if(x && x.id && !loc[k].some(y => y.id === x.id)) loc[k].push(x); })); BIB = loc; sauverBib(); }
         if(data.clauses && typeof data.clauses === 'object'){
           const cl = lireJSON(KEY_CL, {});
           Object.keys(data.clauses).forEach(k => { const a = data.clauses[k], b = cl[k]; if(!b || num(a && a.u) > num(b.u)) cl[k] = a; });
@@ -2899,33 +2955,23 @@ function docAfficher(){
   $('dc_statut').innerHTML = opts.map(s => `<option value="${s[0]}"${s[0] === DOC.statut ? ' selected' : ''}>${s[1]}</option>`).join('');
   $('dc_refus').style.display = (DOC.statut === 'refuse' && DOC.refus) ? 'block' : 'none'; $('dc_refus').textContent = 'Refusé : ' + (DOC.refus || '');
   $('dc_supprimer').style.display = DOC.nouveau ? 'none' : 'block';
-  $('dl_catalogue').innerHTML = MATS.map(m => `<option value="${esc(m.nom)}"></option>`).join('');
+  docCatalogueMaj(); docBibSelects(); $('dc_bib_card').style.display = devis ? 'block' : 'none'; $('dc_newsec_box').style.display = devis ? 'grid' : 'none';
+  DOC_OPEN = new Set();
   docRenderLignes();
   docBoutons();
-}
-function docRenderLignes(){
-  const ds = $('dl_sections'); if(ds) ds.innerHTML = Array.from(new Set(DOC.lignes.map(l => (l.g || '').trim()).filter(Boolean))).map(g => `<option value="${esc(g)}"></option>`).join('');
-  $('dc_lignes').innerHTML = DOC.lignes.map((l, i) => `<div class="item">
-    ${DOC.type === 'devis' ? `<label>Section (ex: FOUILLES, FERRAILLE)</label><input list="dl_sections" value="${esc(l.g || '')}" oninput="DOC.lignes[${i}].g=this.value" placeholder="Facultatif">` : ''}
-    <label>Désignation</label><input list="dl_catalogue" value="${esc(l.d)}" onchange="docChoixLigne(${i},this.value)" placeholder="Ex: Ciment ordinaire">
-    <div class="grid2"><div><label>Unité</label><input value="${esc(l.u)}" oninput="DOC.lignes[${i}].u=this.value" placeholder="sac, m3..."></div>
-    <div><label>Quantité</label><input type="number" step="any" value="${num(l.q)}" oninput="DOC.lignes[${i}].q=num(this.value);docMajTotal()"></div></div>
-    <label class="fin">Prix unitaire (FCFA)</label><input class="fin" type="number" step="any" value="${num(l.p)}" oninput="DOC.lignes[${i}].p=num(this.value);docMajTotal()">
-    <div class="small fin" id="dc_lt_${i}"></div>
-    <button class="btn btn-red" style="padding:6px;font-size:11px;margin-top:4px" onclick="docSupprimerLigne(${i})">🗑️ Retirer cette ligne</button></div>`).join('');
-  docMajTotal();
-  if(DOC && DOC.statut) docVerrouiller();
 }
 function docChoixLigne(i, nom){
   const l = DOC.lignes[i]; l.d = nom;
   const m = MATS.find(x => norm(x.nom) === norm(nom));
+  const ba = DOC.type === 'devis' ? bibArtNom(nom) : null;
+  if(ba){ if(!l.u) l.u = ba.u; if(!num(l.p)) l.p = num(ba.p); docRenderLignes(); return; }
   if(m){ if(!l.u) l.u = m.unite; if(!num(l.p) && PERM.dep) l.p = num(m.prix); if(DOC.type === 'devis' && !(l.g || '').trim()) l.g = (grpNom(m.g) || '').toUpperCase(); docRenderLignes(); }
 }
-function docAjouterLigne(){ const pr = DOC.lignes[DOC.lignes.length - 1]; DOC.lignes.push({id:docIdLigne(), d:'', u:'', q:1, p:0, g:(pr && pr.g) || ''}); docRenderLignes(); }
 function docSupprimerLigne(i){ DOC.lignes.splice(i, 1); if(!DOC.lignes.length) DOC.lignes.push({id:docIdLigne(), d:'', u:'', q:1, p:0}); docRenderLignes(); }
 function docMajTotal(){
   DOC.tva = $('dc_tva').checked; DOC.taux = num($('dc_taux').value) || 0; $('dc_taux_box').style.display = DOC.tva ? 'block' : 'none';
   DOC.lignes.forEach((l, i) => { const e = $('dc_lt_' + i); if(e) e.textContent = 'Total de la ligne : ' + fmt(Math.round(num(l.q) * num(l.p))) + ' FCFA'; });
+  if(DOC.type === 'devis') docSections().forEach((sc, k) => { const e = $('dc_st_' + k); if(e) e.textContent = fmt(Math.round(sc.i.reduce((x, i) => x + num(DOC.lignes[i].q) * num(DOC.lignes[i].p), 0))) + ' F'; });
   const t = docTotal(DOC);
   $('dc_total').innerHTML = DOC.tva ? `Total HT : <b>${fmt(t.ht)}</b> FCFA<br>TVA : ${fmt(t.tva)} FCFA<br><span style="font-size:18px">Total TTC : <b>${fmt(t.ttc)}</b> FCFA</span>` : `<span style="font-size:18px">Total : <b>${fmt(t.ht)}</b> FCFA</span>`;
   $('dc_budget_btn').style.display = (DOC.type === 'devis' && DOC.statut === 'accepte') ? 'block' : 'none';
@@ -3086,7 +3132,7 @@ function syItemsLocal(){
     if(Array.isArray(cfg)){
       const px = {}; cfg.forEach(m => { px[m.id] = m.prix; });
       it['config:materiaux'] = {col:'config', id:'materiaux', d:JSON.stringify(cfg.map(m => { const x = Object.assign({}, m); delete x.prix; return x; }))};
-      it['config_priv:prix'] = {col:'config_priv', id:'prix', d:JSON.stringify({m:px, kp:lireJSON(KEY_PRIX, {})})};
+      it['config_priv:prix'] = {col:'config_priv', id:'prix', d:JSON.stringify({m:px, kp:lireJSON(KEY_PRIX, {}), bib:lireJSON(KEY_BIB, null) || undefined})};
     }
     const g = store.get(KEY_GRP); if(g !== null) it['config:groupes'] = {col:'config', id:'groupes', d:g};
     const e = store.get('proch_entreprise'); if(e !== null) it['config:entreprise'] = {col:'config', id:'entreprise', d:JSON.stringify(e)};
@@ -3185,6 +3231,7 @@ function syApplique(col, id, data){
     cfg.forEach(m => { if(o.m && o.m[m.id] !== undefined) m.prix = o.m[m.id]; });
     store.set(KEY_CFG, JSON.stringify(cfg));
     store.set(KEY_PRIX, JSON.stringify(Object.assign({}, lireJSON(KEY_PRIX, {}), o.kp || {})));
+    if(o.bib && Array.isArray(o.bib.art)){ store.set(KEY_BIB, JSON.stringify(o.bib)); try{ BIB = lireBib(); if(PAGE_COURANTE === 'biblio') bibRender(); }catch(e){} }
     return 'm';
   }
   return '';
@@ -3541,7 +3588,7 @@ function syncMaintenant(){
 }
 
 /* ---- branchement sur l'enregistrement local ---- */
-const SYNC_KEYS = [KEY, KEY_REG, KEY_CFG, KEY_GRP, KEY_CH, KEY_PRIX, 'proch_entreprise', KEY_DOCS, 'proch_profil'];
+const SYNC_KEYS = [KEY, KEY_REG, KEY_CFG, KEY_GRP, KEY_CH, KEY_PRIX, 'proch_entreprise', KEY_DOCS, 'proch_profil', KEY_BIB];
 (function(){
   const orig = store.set.bind(store);
   store.set = function(k, v){
@@ -4347,7 +4394,7 @@ async function pcDossier(){
     fs.forEach(f => { if(f.taches){ const t = String(f.taches).trim(); if(!vus.has(t)){ vus.add(t); I.push({t:'li', s:dateFR(f.date) + ' : ' + t}); } } });
     if(!vus.size) I.push({t:'li', s:'Aucune tâche saisie.'});
   });
-  I.push({t:'row', a:'Avancement mesuré', b:avanc(cc) + ' % du budget'});
+  I.push({t:'row', a:'Avancement mesuré', b:avanc(cc) + (avManuel(cc) ? ' %' : ' % du budget')});
   // 4. coûts
   I.push({t:'block', s:'4. Coûts réels'});
   const dep = {mat:0, transp:0, mo:0, divers:0};
@@ -4586,6 +4633,8 @@ function devisSections(d){
     const tot = Math.round(num(l.q) * num(l.p));
     s.l.push({d:l.d, u:l.u || '', q:num(l.q), p:num(l.p), t:tot}); s.st += tot;
   });
+  let k = 0;
+  S.forEach(s => { if(s.g){ s.n = ++k * 100; s.l.forEach((l, j) => { l.n = s.n + j + 1; }); } });
   return S;
 }
 function devisDefaut(d){
@@ -4639,22 +4688,40 @@ function creerPDFDevis(d0){
   // ---- tableau ----
   const cw = [0.46, 0.18, 0.17, 0.19].map(x => x * CW), cxs = []; let acc = M; cw.forEach(w => { cxs.push(acc); acc += w; });
   const enteteT = () => { need(40); rect(M, y - 6, CW, 22, BLEU); txt('Désignation', cxs[0] + 8, y, 11, false, [1, 1, 1]); txtR('Qté', cxs[1] + cw[1] - 6, y, 11, false, [1, 1, 1]); txtR('Prix U.', cxs[2] + cw[2] - 6, y, 11, false, [1, 1, 1]); txtR('Prix HT', cxs[3] + cw[3] - 8, y, 11, false, [1, 1, 1]); y -= 24; };
-  enteteT();
   const S = devisSections(d); let alt = 0;
-  S.forEach(s => {
-    if(s.g){ need(40); rect(M, y - 5, CW, 19, CLAIR); txt('- ' + s.g.toUpperCase(), cxs[0] + 8, y, 10.5, true); y -= 19; }
-    s.l.forEach(l => {
+  const struct = S.some(x => x.g);
+  const enteteLot = () => { need(26); rect(M, y - 6, CW, 20, CLAIR); txt('Désignation', cxs[0] + 8, y, 9.5, true, BLEU); txtR('Qté', cxs[1] + cw[1] - 6, y, 9.5, true, BLEU); txtR('Prix U.', cxs[2] + cw[2] - 6, y, 9.5, true, BLEU); txtR('Montant', cxs[3] + cw[3] - 8, y, 9.5, true, BLEU); y -= 22; };
+  const titreLot = (sc, suite) => { rect(M, y - 6, CW, 22, BLEU); txt((sc.n ? 'LOT ' + sc.n + '  ·  ' : '') + (sc.g || 'AUTRES POSTES').toUpperCase() + (suite ? '  (suite)' : ''), M + 8, y, 11, true, [1, 1, 1]); y -= 26; };
+  if(!struct) enteteT();
+  S.forEach(sc => {
+    if(struct){ need(100); titreLot(sc, false); enteteLot(); alt = 0; }
+    sc.l.forEach(l => {
       const L = pdfWrap(l.d, 10.5, cw[0] - 26), h = Math.max(19, L.length * 13 + 6);
-      if(y - h < FOOT){ nouvelle(); enteteT(); }
+      if(y - h < FOOT){ nouvelle(); if(struct){ titreLot(sc, true); enteteLot(); } else enteteT(); }
       if(alt++ % 2) rect(M, y - h + 14, CW, h, CLAIR);
-      L.forEach((t, i) => txt((i === 0 ? '• ' : '  ') + t, cxs[0] + 14, y - i * 13, 10.5, false));
+      L.forEach((t, i) => txt((i === 0 ? (l.n ? l.n + ' ' : '• ') : (l.n ? '     ' : '  ')) + t, cxs[0] + 14, y - i * 13, 10.5, false));
       txtR(clF(l.q) + (l.u ? ' ' + l.u : ''), cxs[1] + cw[1] - 6, y, 10.5, false);
       txtR(clF(l.p), cxs[2] + cw[2] - 6, y, 10.5, false);
       txtR(clF(l.t), cxs[3] + cw[3] - 8, y, 10.5, false);
       y -= h;
     });
-    if(S.length > 1 || s.g){ need(24); txtR('Sous Total :', cxs[3] - 8, y, 10.5, false); txtR(clF(s.st), cxs[3] + cw[3] - 8, y, 10.5, true); y -= 21; }
+    if(struct){ need(34); rect(M, y + 14, CW, 1.2, BLEU); txtR('Total lot ' + (sc.n || ''), cxs[2] + cw[2] - 6, y - 2, 10.5, true, BLEU); txtR(clF(sc.st), cxs[3] + cw[3] - 8, y - 2, 11, true, BLEU); y -= 40; }
+    else if(S.length > 1){ need(24); txtR('Sous Total :', cxs[3] - 8, y, 10.5, false); txtR(clF(sc.st), cxs[3] + cw[3] - 8, y, 10.5, true); y -= 21; }
   });
+  // ---- récapitulatif par lot ----
+  if(struct && S.length > 1){
+    need(90); txt('Récapitulatif par lot', M, y, 12.5, true, BLEU); y -= 8; rect(M, y, CW, 1.2, BLEU); y -= 22;
+    rect(M, y - 6, CW, 20, CLAIR); txt('N°', cxs[0] + 8, y, 9.5, true, BLEU); txt('Désignation', cxs[0] + 48, y, 9.5, true, BLEU); txtR('Montant (FCFA)', cxs[3] + cw[3] - 8, y, 9.5, true, BLEU); y -= 24;
+    S.forEach(sc => {
+      const L = pdfWrap(sc.g || 'Autres postes', 10.5, CW - 200), h = Math.max(20, L.length * 13 + 7);
+      need(h + 4);
+      txt(sc.n ? String(sc.n) : '', cxs[0] + 8, y, 10.5, true, BLEU);
+      L.forEach((t, i) => txt(t, cxs[0] + 48, y - i * 13, 10.5, false));
+      txtR(clF(sc.st), cxs[3] + cw[3] - 8, y, 10.5, true);
+      y -= h; rect(M, y + 13, CW, 0.5, [0.8, 0.82, 0.86]);
+    });
+    y -= 10;
+  }
   // ---- totaux ----
   const t = docTotal(d);
   need(110);
@@ -4714,14 +4781,24 @@ function devisHtml(d0){
     <div style="flex:1"><div style="background:${C};padding:5px 8px;font-weight:700">${esc(d.ctype)}</div><div style="padding:4px 8px"><b>${esc(d.dest || '')}</b><br><span style="color:#475569">${esc(d.tel || '')}</span></div></div>
   </div>
   ${d.objet ? `<div><b>Objet :</b> <span style="color:${B};font-size:16px">${esc(d.objet)}</span></div>` : ''}
-  <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:11px"><tr><th style="padding:6px;text-align:left;border:none;background:${B};color:#fff">Désignation</th><th style="text-align:right;border:none;background:${B};color:#fff">Qté</th><th style="text-align:right;border:none;background:${B};color:#fff">Prix U.</th><th style="text-align:right;border:none;background:${B};color:#fff">Prix HT</th></tr>`;
-  let alt = 0;
-  S.forEach(s => {
-    if(s.g) h += `<tr style="background:${C}"><td colspan="4" style="padding:5px;border:none"><b>- ${esc(s.g.toUpperCase())}</b></td></tr>`;
-    s.l.forEach(l => { h += `<tr style="${alt++ % 2 ? 'background:' + C : ''}"><td style="padding:4px 4px 4px 14px;border:none">• ${esc(l.d)}</td><td style="text-align:right;border:none">${esc(clF(l.q) + (l.u ? ' ' + l.u : ''))}</td><td style="text-align:right;border:none">${esc(clF(l.p))}</td><td style="text-align:right;border:none">${esc(clF(l.t))}</td></tr>`; });
-    if(S.length > 1 || s.g) h += `<tr><td colspan="3" style="text-align:right;padding:4px;border:none">Sous Total :</td><td style="text-align:right;border:none"><b>${esc(clF(s.st))}</b></td></tr>`;
+  `;
+  const struct = S.some(x => x.g);
+  const th = (a, al) => `<th style="padding:5px 6px;text-align:${al};border:none;background:${C};color:${B}">${a}</th>`;
+  const entete = `<tr>${th('Désignation', 'left')}${th('Qté', 'right')}${th('Prix U.', 'right')}${th('Montant', 'right')}</tr>`;
+  S.forEach(sc => {
+    h += `<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:11px">`;
+    if(struct) h += `<tr><td colspan="4" style="padding:6px 8px;border:none;background:${B};color:#fff;font-weight:700;font-size:12px">${sc.n ? 'LOT ' + sc.n + ' &nbsp;·&nbsp; ' : ''}${esc((sc.g || 'Autres postes').toUpperCase())}</td></tr>`;
+    h += entete;
+    sc.l.forEach((l, i) => { h += `<tr style="${i % 2 ? 'background:' + C : ''}"><td style="padding:4px 4px 4px 8px;border:none">${l.n ? l.n + ' ' : '• '}${esc(l.d)}</td><td style="text-align:right;border:none">${esc(clF(l.q) + (l.u ? ' ' + l.u : ''))}</td><td style="text-align:right;border:none">${esc(clF(l.p))}</td><td style="text-align:right;border:none">${esc(clF(l.t))}</td></tr>`; });
+    if(struct) h += `<tr><td colspan="3" style="text-align:right;padding:6px 4px;border:none;border-top:2px solid ${B};color:${B}"><b>Total lot ${sc.n || ''}</b></td><td style="text-align:right;border:none;border-top:2px solid ${B};color:${B}"><b>${esc(clF(sc.st))}</b></td></tr>`;
+    h += `</table>`;
   });
-  h += `</table>
+  if(struct && S.length > 1){
+    h += `<h3 style="margin:18px 0 4px;color:${B}">Récapitulatif par lot</h3><table style="width:100%;border-collapse:collapse;font-size:11px"><tr>${th('N°', 'left')}${th('Désignation', 'left')}${th('Montant (FCFA)', 'right')}</tr>`;
+    S.forEach(sc => { h += `<tr><td style="padding:5px 6px;border:none;border-bottom:1px solid #cbd5e1;color:${B}"><b>${sc.n || ''}</b></td><td style="border:none;border-bottom:1px solid #cbd5e1">${esc(sc.g || 'Autres postes')}</td><td style="text-align:right;border:none;border-bottom:1px solid #cbd5e1"><b>${esc(clF(sc.st))}</b></td></tr>`; });
+    h += `</table>`;
+  }
+  h += `
   <div style="display:flex;gap:12px;margin-top:12px;align-items:flex-start">
     <div style="flex:1;font-size:11px">Arrêté le(a) présent(e) devis à la somme de ${esc(nbLettres(net))} Francs CFA.</div>
     <div style="width:55%"><div style="background:${C};padding:6px;display:flex;justify-content:space-between"><span>Total HT</span><span>${esc(clF(t.ht))} FCFA</span></div>
@@ -4991,6 +5068,385 @@ function docDemarrerChantier(){
   toast('🏗️ Chantier « ' + nom + ' » créé avec le budget du devis');
   const c = lireChantiers().find(x => norm(x.nom) === norm(nom));
   if(c) setTimeout(() => ouvrirFicheChantier(c.id), 400);
+}
+/* ================= V22 : BIBLIOTHÈQUE (articles → groupes → lots → modèles) ================= */
+const BIB_DEF = (() => {
+  const A = [
+    ['sable_gros','Sable gros','camion 20 t',360000,'Agrégats'],
+    ['sable_fin','Sable fin','camion 20 t',260000,'Agrégats'],
+    ['sable_carr','Sable de carrière','camion 20 t',260000,'Agrégats'],
+    ['gravier','Gravier 5/15','camion 32 t',350000,'Agrégats'],
+    ['ciment','Ciment','sac',5300,'Liants'],
+    ['polyane','Film polyane','m2',1000,'Autres'],
+    ['planche','Planche usinée','pièce',5000,'Bois et coffrage'],
+    ['planche_fond','Planche de fond de coffrage','pièce',5200,'Bois et coffrage'],
+    ['latte','Latte','pièce',1600,'Bois et coffrage'],
+    ['piquet','Piquet / étai','pièce',600,'Bois et coffrage'],
+    ['contrepl','Contre-plaqué','feuille',3600,'Bois et coffrage'],
+    ['agglo20','Agglo 20 vibré','pièce',450,'Maçonnerie'],
+    ['agglo15','Agglo 15','pièce',350,'Maçonnerie'],
+    ['hourdi','Hourdi','pièce',450,'Plancher'],
+    ['fer8','Fer tor Ø8','barre',3300,'Fer et quincaillerie'],
+    ['fer10','Fer tor Ø10','barre',4800,'Fer et quincaillerie'],
+    ['fer12','Fer tor Ø12','barre',6750,'Fer et quincaillerie'],
+    ['fer6','Fer lisse Ø6','barre',1700,'Fer et quincaillerie'],
+    ['fil','Fil d\'attache','kg',1000,'Fer et quincaillerie'],
+    ['toc','Pointe toc','kg',1500,'Fer et quincaillerie'],
+    ['tp80','Pointe TP 80','kg',4500,'Fer et quincaillerie'],
+    ['chevron','Chevron','pièce',2500,'Charpente et couverture'],
+    ['chevron_p','Chevron (petite section)','pièce',1500,'Charpente et couverture'],
+    ['basting','Basting','pièce',2500,'Charpente et couverture'],
+    ['tole','Tôle Metrobond granulé','ml',6000,'Charpente et couverture'],
+    ['membrane1','Membrane d\'étanchéité (type 1)','rouleau',56000,'Étanchéité'],
+    ['membrane2','Membrane d\'étanchéité (type 2)','rouleau',54000,'Étanchéité'],
+    ['flincot','Flintkote (flincot)','seau',42000,'Étanchéité'],
+    ['bitume','Pain de bitume','pièce',25000,'Étanchéité'],
+    ['gaz','Recharge bouteille de gaz','pièce',6500,'Étanchéité'],
+    ['balai','Balai coco','pièce',5000,'Étanchéité'],
+    ['platine','Platine de plomb','pièce',22000,'Étanchéité'],
+    ['brouette','Brouette renforcée','pièce',38000,'Petit matériel'],
+    ['pelle','Pelle ronde / bêche','pièce',2500,'Petit matériel'],
+    ['seau','Seau de maçon','pièce',1000,'Petit matériel'],
+    ['cisaille','Cisaille','pièce',50000,'Petit matériel'],
+    ['pioche','Pioche','pièce',3500,'Petit matériel'],
+    ['cubit','Cubitenaire','pièce',90000,'Petit matériel'],
+    ['terr','Terrassement (fouilles et remblais)','forfait',0,'Main d\'œuvre'],
+    ['mo_fond','Main d\'œuvre – Fondation','forfait',3586275,'Main d\'œuvre'],
+    ['mo_rdc','Main d\'œuvre – Maçonneries RDC','forfait',4694725,'Main d\'œuvre'],
+    ['mo_plh','Main d\'œuvre – Plancher haut RDC','forfait',4480875,'Main d\'œuvre'],
+    ['mo_et1','Main d\'œuvre – Étage 1','forfait',4694725,'Main d\'œuvre'],
+    ['mo_acr','Main d\'œuvre – Acrotère','forfait',1784650,'Main d\'œuvre'],
+    ['mo_etan','Main d\'œuvre – Étanchéité acrotère','forfait',1281875,'Main d\'œuvre'],
+    ['mo_toit','Main d\'œuvre – Toiture','forfait',3590300,'Main d\'œuvre']
+  ].map(a => ({id:a[0], nom:a[1], u:a[2], p:a[3], cat:a[4]}));
+  const L1 = ids => ids.map(a => ({a, q:1}));
+  const G = [
+    ['g_prelim','Implantation et installation de chantier',[['piquet',20],['planche',10],['latte',10],['toc',1]]],
+    ['g_terr','Terrassement',[['terr',1]]],
+    ['g_poly','Film polyane',[['polyane',1]]],
+    ['g_ciment','Ciment',[['ciment',1]]],
+    ['g_agreg','Agrégats (sable, gravier)',[['sable_gros',1],['sable_fin',1],['gravier',1]]],
+    ['g_ferr','Ferraille',[['fer8',1],['fer10',1],['fer12',1],['fer6',1],['fil',1]]],
+    ['g_coff','Bois de coffrage',[['planche',1],['planche_fond',1],['latte',1],['piquet',1],['toc',1],['tp80',1],['contrepl',1]]],
+    ['g_agglo','Agglos',[['agglo20',1],['agglo15',1]]],
+    ['g_hourd','Hourdis',[['hourdi',1]]],
+    ['g_charp','Charpente bois',[['chevron',1],['chevron_p',1],['basting',1],['tp80',1]]],
+    ['g_couv','Couverture en tôle',[['tole',1]]],
+    ['g_etan','Étanchéité',[['membrane1',1],['membrane2',1],['flincot',1],['bitume',1],['gaz',1],['balai',1],['platine',1]]],
+    ['g_petit','Petit matériel',[['brouette',1],['pelle',1],['seau',1],['cisaille',1],['pioche',1],['cubit',1]]],
+    ['g_mo_fond','Main d\'œuvre fondation',[['mo_fond',1]]],
+    ['g_mo_rdc','Main d\'œuvre maçonneries RDC',[['mo_rdc',1]]],
+    ['g_mo_plh','Main d\'œuvre plancher haut RDC',[['mo_plh',1]]],
+    ['g_mo_et1','Main d\'œuvre étage 1',[['mo_et1',1]]],
+    ['g_mo_acr','Main d\'œuvre acrotère',[['mo_acr',1]]],
+    ['g_mo_etan','Main d\'œuvre étanchéité acrotère',[['mo_etan',1]]],
+    ['g_mo_toit','Main d\'œuvre toiture',[['mo_toit',1]]]
+  ].map(g => ({id:g[0], nom:g[1], l:g[2].map(x => ({a:x[0], q:x[1]}))}));
+  const LOT = [
+    ['l_prelim','Travaux préliminaires',['g_prelim']],
+    ['l_terr','Terrassements',['g_terr']],
+    ['l_fond','Fondations',['g_poly','g_ciment','g_agreg','g_ferr','g_coff','g_mo_fond']],
+    ['l_rdc','Maçonneries RDC',['g_agglo','g_ciment','g_agreg','g_ferr','g_mo_rdc']],
+    ['l_plh','Plancher haut RDC',['g_hourd','g_ciment','g_agreg','g_ferr','g_coff','g_mo_plh']],
+    ['l_et1','Étage 1',['g_agglo','g_ciment','g_agreg','g_ferr','g_coff','g_mo_et1']],
+    ['l_acr','Acrotère',['g_ciment','g_agreg','g_ferr','g_coff','g_mo_acr']],
+    ['l_etan','Étanchéité acrotère',['g_etan','g_mo_etan']],
+    ['l_toit','Charpentes et couvertures',['g_charp','g_couv','g_mo_toit']],
+    ['l_petit','Petits matériels',['g_petit']]
+  ].map(l => ({id:l[0], nom:l[1], g:l[2]}));
+  const M = [
+    ['m_duplex','Duplex R+1 (type Mbouda)',['l_prelim','l_terr','l_fond','l_rdc','l_plh','l_et1','l_acr','l_etan','l_toit','l_petit']],
+    ['m_villa','Villa de plain-pied',['l_prelim','l_terr','l_fond','l_rdc','l_toit','l_petit']]
+  ].map(m => ({id:m[0], nom:m[1], l:m[2]}));
+  return {art:A, grp:G, lot:LOT, mod:M};
+})();
+
+function lireBib(){
+  const b = lireJSON(KEY_BIB, null);
+  if(b && Array.isArray(b.art)){ b.grp = b.grp || []; b.lot = b.lot || []; b.mod = b.mod || []; return b; }
+  return clone(BIB_DEF);
+}
+let BIB = lireBib();
+function sauverBib(){ store.set(KEY_BIB, JSON.stringify(BIB)); }
+const bibArt = id => BIB.art.find(x => x.id === id);
+const bibGrp = id => BIB.grp.find(x => x.id === id);
+const bibLot = id => BIB.lot.find(x => x.id === id);
+const bibMod = id => BIB.mod.find(x => x.id === id);
+const bibArtNom = nom => BIB.art.find(x => norm(x.nom) === norm(nom));
+const bibId = p => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+const grpTotal = g => Math.round((g.l || []).reduce((a, x) => { const r = bibArt(x.a); return a + (r ? num(r.p) * num(x.q) : 0); }, 0));
+const lotTotal = l => (l.g || []).reduce((a, id) => { const g = bibGrp(id); return a + (g ? grpTotal(g) : 0); }, 0);
+let BIB_TAB = 'art', BIB_EDIT = null;
+const BIB_REF = {lot:{f:'g', src:'grp', lbl:'groupe d\'articles', dl:'dl_bib_grp'}, mod:{f:'l', src:'lot', lbl:'lot', dl:'dl_bib_lot'}};
+const BIB_AIDE = {
+  art:'Un article = un matériau ou un service avec son unité et son prix (ciment, fer, main d\'œuvre…). Touche un article pour le modifier.',
+  grp:'Un groupe d\'articles rassemble des articles avec leurs quantités (ex. « Ferraille fondation »). Les quantités se réajustent ensuite dans chaque devis.',
+  lot:'Un lot rassemble des groupes d\'articles (ex. « Fondations »). Dans un devis, chaque lot devient une rubrique numérotée 100, 200, 300…',
+  mod:'Un modèle = une liste de lots déjà rangés dans l\'ordre (ex. Villa, R+1). Un seul geste pour démarrer un devis.'
+};
+const BIB_AJOUT = {art:'➕ Nouvel article', grp:'➕ Nouveau groupe d\'articles', lot:'➕ Nouveau lot', mod:'➕ Nouveau modèle'};
+function bibTab(t){ BIB_TAB = t; BIB_EDIT = null; bibRender(); }
+function bibRender(){
+  if(!$('bib_liste')) return;
+  ['art', 'grp', 'lot', 'mod'].forEach(t => { $('bt_' + t).className = 'btn ' + (t === BIB_TAB ? 'btn-save' : 'btn-grey'); });
+  $('bib_aide').textContent = BIB_AIDE[BIB_TAB];
+  $('bib_add').textContent = BIB_AJOUT[BIB_TAB];
+  $('bib_art_tools').style.display = BIB_TAB === 'art' ? 'block' : 'none';
+  const opt = l => l.map(x => `<option value="${esc(x.nom)}"></option>`).join('');
+  $('dl_bib_art').innerHTML = opt(BIB.art); $('dl_bib_grp').innerHTML = opt(BIB.grp); $('dl_bib_lot').innerHTML = opt(BIB.lot);
+  const cats = Array.from(new Set(BIB.art.map(a => a.cat || 'Autres'))).sort((a, b) => a.localeCompare(b, 'fr'));
+  $('dl_bib_cat').innerHTML = cats.map(c => `<option value="${esc(c)}"></option>`).join('');
+  const cur = $('bib_cat').value;
+  $('bib_cat').innerHTML = '<option value="">Toutes les catégories</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  $('bib_cat').value = cats.includes(cur) ? cur : '';
+  ({art:bibRenderArt, grp:bibRenderGrp, lot:bibRenderLot, mod:bibRenderMod})[BIB_TAB]();
+}
+function bibSet(kind, id, champ, val){
+  const o = BIB[kind].find(x => x.id === id); if(!o) return;
+  o[champ] = champ === 'p' ? num(val) : String(val).trim();
+  sauverBib();
+}
+function bibEditer(id){ BIB_EDIT = BIB_EDIT === id ? null : id; bibRender(); }
+function bibAjouterElem(){
+  const k = BIB_TAB;
+  let o;
+  if(k === 'art') o = {id:bibId('a'), nom:'Nouvel article', u:'', p:0, cat:$('bib_cat').value || 'Autres'};
+  else if(k === 'grp') o = {id:bibId('g'), nom:'Nouveau groupe', l:[]};
+  else if(k === 'lot') o = {id:bibId('l'), nom:'Nouveau lot', g:[]};
+  else o = {id:bibId('m'), nom:'Nouveau modèle', l:[]};
+  BIB[k].unshift(o); sauverBib(); BIB_EDIT = o.id;
+  if(k === 'art'){ $('bib_q').value = ''; }
+  bibRender(); window.scrollTo(0, 0);
+}
+function bibSupprimer(kind, id, b){
+  armer(b, '⚠️ Confirmer ?', '🗑️ Supprimer', () => {
+    BIB[kind] = BIB[kind].filter(x => x.id !== id);
+    if(kind === 'art') BIB.grp.forEach(g => { g.l = (g.l || []).filter(x => x.a !== id); });
+    if(kind === 'grp') BIB.lot.forEach(l => { l.g = (l.g || []).filter(x => x !== id); });
+    if(kind === 'lot') BIB.mod.forEach(m => { m.l = (m.l || []).filter(x => x !== id); });
+    BIB_EDIT = null; sauverBib(); bibRender(); toast('🗑️ Supprimé');
+  });
+}
+const bibFin = () => `<button class="btn btn-save" onclick="BIB_EDIT=null;bibRender()">✔ Terminé</button>`;
+function bibRenderArt(){
+  const q = norm($('bib_q').value), c = $('bib_cat').value;
+  const l = BIB.art.filter(a => (!c || (a.cat || 'Autres') === c) && (!q || norm(a.nom + ' ' + (a.cat || '')).includes(q)));
+  const par = {}; l.forEach(a => { (par[a.cat || 'Autres'] = par[a.cat || 'Autres'] || []).push(a); });
+  let h = '';
+  Object.keys(par).sort((a, b) => a.localeCompare(b, 'fr')).forEach(cat => {
+    h += `<div class="sec">${esc(cat)}</div>`;
+    par[cat].forEach(a => {
+      if(a.id === BIB_EDIT) h += `<div class="item" style="border:2px solid #0284c7">
+        <label>Nom de l'article</label><input value="${esc(a.nom)}" onchange="bibSet('art','${a.id}','nom',this.value)">
+        <div class="grid3"><div><label>Unité</label><input value="${esc(a.u)}" onchange="bibSet('art','${a.id}','u',this.value)" placeholder="sac, m², forfait…"></div>
+        <div><label>Prix (FCFA)</label><input type="number" step="any" value="${num(a.p)}" onchange="bibSet('art','${a.id}','p',this.value)"></div>
+        <div><label>Catégorie</label><input list="dl_bib_cat" value="${esc(a.cat || '')}" onchange="bibSet('art','${a.id}','cat',this.value)"></div></div>
+        ${bibFin()}<button class="btn btn-red" onclick="bibSupprimer('art','${a.id}',this)">🗑️ Supprimer</button></div>`;
+      else h += `<div class="item" style="cursor:pointer" onclick="bibEditer('${a.id}')"><b>${esc(a.nom)}</b><div class="note">${esc(a.u || '—')}</div><div class="fin"><b>${fmt(num(a.p))}</b> FCFA</div></div>`;
+    });
+  });
+  $('bib_liste').innerHTML = h || '<div class="note" style="padding:12px">Aucun article ne correspond.</div>';
+}
+function bibRenderGrp(){
+  $('bib_liste').innerHTML = BIB.grp.map(g => {
+    if(g.id !== BIB_EDIT) return `<div class="item" style="cursor:pointer" onclick="bibEditer('${g.id}')"><b>${esc(g.nom)}</b><div class="note">${(g.l || []).length} article(s)</div><div class="fin"><b>${fmt(grpTotal(g))}</b> FCFA</div></div>`;
+    return `<div class="item" style="border:2px solid #0284c7">
+      <label>Nom du groupe d'articles</label><input value="${esc(g.nom)}" onchange="bibSet('grp','${g.id}','nom',this.value)">
+      ${(g.l || []).map((x, i) => { const a = bibArt(x.a); if(!a) return ''; return `<div class="item" style="padding:8px;margin:6px 0"><b>${esc(a.nom)}</b><div class="note">${esc(a.u || '—')} · <span class="fin">${fmt(num(a.p))} FCFA</span></div>
+        <div class="grid2"><div><label>Quantité</label><input type="number" step="any" value="${num(x.q)}" onchange="bibGrpQte('${g.id}',${i},this.value)"></div>
+        <div><label>&nbsp;</label><button class="btn btn-red" style="padding:10px" onclick="bibGrpRetirer('${g.id}',${i})">✖ Retirer</button></div></div></div>`; }).join('') || '<div class="note">Groupe vide : ajoute des articles ci-dessous.</div>'}
+      <label>Ajouter un article (tape son nom)</label><input list="dl_bib_art" id="bib_oadd" placeholder="Ex: Ciment">
+      <button class="btn btn-grey" onclick="bibGrpAjouter('${g.id}')">➕ Ajouter cet article</button>
+      <div class="total-box fin">Total du groupe : <b>${fmt(grpTotal(g))}</b> FCFA</div>
+      ${bibFin()}<button class="btn btn-red" onclick="bibSupprimer('grp','${g.id}',this)">🗑️ Supprimer</button></div>`;
+  }).join('') || '<div class="note" style="padding:12px">Aucun groupe.</div>';
+}
+function bibGrpQte(id, i, v){ const g = bibGrp(id); if(g && g.l[i]){ g.l[i].q = num(v); sauverBib(); bibRender(); } }
+function bibGrpRetirer(id, i){ const g = bibGrp(id); if(g){ g.l.splice(i, 1); sauverBib(); bibRender(); } }
+function bibGrpAjouter(id){
+  const g = bibGrp(id), a = bibArtNom($('bib_oadd').value);
+  if(!g) return; if(!a) return toast('⚠️ Choisis un article de la liste');
+  g.l.push({a:a.id, q:1}); sauverBib(); bibRender();
+}
+function bibOrdListe(kind, o){
+  const R = BIB_REF[kind], arr = o[R.f] || [];
+  const noms = arr.map(id => (BIB[R.src].find(x => x.id === id) || {}).nom);
+  return `${arr.map((id, i) => noms[i] ? `<div class="item" style="padding:8px;margin:6px 0"><b>${i + 1}. ${esc(noms[i])}</b>${kind === 'lot' ? `<div class="note fin">${fmt(grpTotal(bibGrp(id)))} FCFA</div>` : `<div class="note fin">${fmt(lotTotal(bibLot(id)))} FCFA</div>`}
+      <div style="display:flex;gap:6px"><button class="btn btn-grey" style="padding:8px;flex:1" onclick="bibOrdMove('${kind}','${o.id}',${i},-1)">▲</button><button class="btn btn-grey" style="padding:8px;flex:1" onclick="bibOrdMove('${kind}','${o.id}',${i},1)">▼</button><button class="btn btn-red" style="padding:8px;flex:1" onclick="bibOrdRetirer('${kind}','${o.id}',${i})">✖</button></div></div>` : '').join('') || `<div class="note">Vide : ajoute des ${kind === 'lot' ? 'groupes d\'articles' : 'lots'} ci-dessous.</div>`}
+    <label>Ajouter ${kind === 'lot' ? 'un groupe d\'articles' : 'un lot'} (tape son nom)</label><input list="${R.dl}" id="bib_oadd" placeholder="Choisis dans la liste">
+    <button class="btn btn-grey" onclick="bibOrdAjouter('${kind}','${o.id}')">➕ Ajouter</button>`;
+}
+function bibOrdMove(kind, id, i, dir){ const o = BIB[kind].find(x => x.id === id), a = o[BIB_REF[kind].f], j = i + dir; if(j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; sauverBib(); bibRender(); }
+function bibOrdRetirer(kind, id, i){ const o = BIB[kind].find(x => x.id === id); o[BIB_REF[kind].f].splice(i, 1); sauverBib(); bibRender(); }
+function bibOrdAjouter(kind, id){
+  const R = BIB_REF[kind], o = BIB[kind].find(x => x.id === id), t = BIB[R.src].find(x => norm(x.nom) === norm($('bib_oadd').value));
+  if(!t) return toast('⚠️ Choisis un nom de la liste');
+  o[R.f].push(t.id); sauverBib(); bibRender();
+}
+function bibRenderLot(){
+  $('bib_liste').innerHTML = BIB.lot.map(l => {
+    if(l.id !== BIB_EDIT) return `<div class="item" style="cursor:pointer" onclick="bibEditer('${l.id}')"><b>${esc(l.nom)}</b><div class="note">${(l.g || []).length} groupe(s) d'articles</div><div class="fin"><b>${fmt(lotTotal(l))}</b> FCFA</div></div>`;
+    return `<div class="item" style="border:2px solid #0284c7"><label>Nom du lot</label><input value="${esc(l.nom)}" onchange="bibSet('lot','${l.id}','nom',this.value)">
+      ${bibOrdListe('lot', l)}<div class="total-box fin">Total du lot : <b>${fmt(lotTotal(l))}</b> FCFA</div>${bibFin()}<button class="btn btn-red" onclick="bibSupprimer('lot','${l.id}',this)">🗑️ Supprimer</button></div>`;
+  }).join('') || '<div class="note" style="padding:12px">Aucun lot.</div>';
+}
+function bibRenderMod(){
+  $('bib_liste').innerHTML = BIB.mod.map(m => {
+    if(m.id !== BIB_EDIT) return `<div class="item" style="cursor:pointer" onclick="bibEditer('${m.id}')"><b>${esc(m.nom)}</b><div class="note">${(m.l || []).length} lot(s)</div><div class="fin"><b>${fmt((m.l || []).reduce((a, id) => a + (bibLot(id) ? lotTotal(bibLot(id)) : 0), 0))}</b> FCFA</div></div>`;
+    return `<div class="item" style="border:2px solid #0284c7"><label>Nom du modèle</label><input value="${esc(m.nom)}" onchange="bibSet('mod','${m.id}','nom',this.value)">
+      ${bibOrdListe('mod', m)}${bibFin()}<button class="btn btn-red" onclick="bibSupprimer('mod','${m.id}',this)">🗑️ Supprimer</button></div>`;
+  }).join('') || '<div class="note" style="padding:12px">Aucun modèle.</div>';
+}
+
+/* ---- devis : composer avec la bibliothèque, lots numérotés, déplacer ---- */
+let DOC_OPEN = new Set();
+function docCatalogueMaj(){
+  const noms = (DOC && DOC.type === 'devis' ? BIB.art : []).map(a => a.nom).concat(MATS.map(m => m.nom));
+  $('dl_catalogue').innerHTML = Array.from(new Set(noms)).map(n => `<option value="${esc(n)}"></option>`).join('');
+}
+function docBibSelects(){
+  $('dc_lot_sel').innerHTML = BIB.lot.map(l => `<option value="${esc(l.id)}">${esc(l.nom)}</option>`).join('');
+  $('dc_mod_sel').innerHTML = BIB.mod.map(m => `<option value="${esc(m.id)}">${esc(m.nom)}</option>`).join('');
+}
+function bibLotLignes(lot){
+  const out = [];
+  (lot.g || []).forEach(gid => { const g = bibGrp(gid); if(!g) return;
+    (g.l || []).forEach(x => { const a = bibArt(x.a); if(!a) return;
+      let o = out.find(y => y.a === a.id); if(!o){ o = {a:a.id, d:a.nom, u:a.u, q:0, p:num(a.p)}; out.push(o); }
+      o.q += num(x.q); }); });
+  return out;
+}
+function docNettoyerVides(){ DOC.lignes = DOC.lignes.filter(l => (l.d || '').trim() || num(l.p) || (l.g || '').trim()); }
+function docPousserLot(lot){
+  if(DOC.lignes.some(l => (l.g || '').trim() === lot.nom)) return false;
+  const L = bibLotLignes(lot); if(!L.length) return false;
+  docNettoyerVides();
+  L.forEach(x => DOC.lignes.push({id:docIdLigne(), d:x.d, u:x.u, q:x.q, p:x.p, g:lot.nom}));
+  return true;
+}
+function docAjouterLot(){
+  const lot = bibLot($('dc_lot_sel').value); if(!lot) return toast('⚠️ Aucun lot dans la bibliothèque');
+  if(!docPousserLot(lot)) return toast('⚠️ Ce lot est déjà dans le devis (ou il est vide)');
+  DOC_OPEN.add(lot.nom); docRenderLignes(); toast('✅ Lot « ' + lot.nom + ' » ajouté');
+}
+function docAjouterModele(){
+  const m = bibMod($('dc_mod_sel').value); if(!m) return toast('⚠️ Aucun modèle');
+  let n = 0; (m.l || []).forEach(id => { const lot = bibLot(id); if(lot && docPousserLot(lot)) n++; });
+  docRenderLignes(); toast(n ? '✅ ' + n + ' lot(s) ajouté(s)' : 'Rien à ajouter (lots déjà présents)');
+}
+function docSections(){
+  const o = [];
+  DOC.lignes.forEach((l, i) => { const g = (l.g || '').trim(); let s = o.find(x => x.g === g); if(!s){ s = {g, i:[]}; o.push(s); } s.i.push(i); });
+  return o;
+}
+function docToggleSec(el){ if(el.open) DOC_OPEN.add(el.dataset.g); else DOC_OPEN.delete(el.dataset.g); }
+function docDeplacerSection(k, dir){
+  const S = docSections(), j = k + dir; if(j < 0 || j >= S.length) return;
+  [S[k], S[j]] = [S[j], S[k]];
+  const nl = []; S.forEach(s => s.i.forEach(i => nl.push(DOC.lignes[i]))); DOC.lignes = nl;
+  docRenderLignes();
+}
+function docRenommerSection(k, nv){
+  const s = docSections()[k]; if(!s) return; nv = (nv || '').trim();
+  s.i.forEach(i => { DOC.lignes[i].g = nv; });
+  if(DOC_OPEN.has(s.g)){ DOC_OPEN.delete(s.g); DOC_OPEN.add(nv); }
+  docRenderLignes();
+}
+function docRetirerSection(k){
+  const s = docSections()[k]; if(!s) return;
+  DOC.lignes = DOC.lignes.filter((l, i) => s.i.indexOf(i) < 0);
+  if(!DOC.lignes.length) DOC.lignes.push({id:docIdLigne(), d:'', u:'', q:1, p:0, g:''});
+  docRenderLignes();
+}
+function docLigneDansSection(k){
+  const s = docSections()[k]; if(!s) return;
+  DOC.lignes.splice(s.i[s.i.length - 1] + 1, 0, {id:docIdLigne(), d:'', u:'', q:1, p:0, g:s.g});
+  DOC_OPEN.add(s.g); docRenderLignes();
+}
+function docNouvelleSection(){
+  const nom = ($('dc_newsec').value || '').trim(); if(!nom) return toast('⚠️ Donne un nom au lot');
+  docNettoyerVides();
+  DOC.lignes.push({id:docIdLigne(), d:'', u:'', q:1, p:0, g:nom}); DOC_OPEN.add(nom); $('dc_newsec').value = '';
+  docRenderLignes();
+}
+function docLigneHtml(i, l, devis){
+  return `<div class="item" style="padding:8px;margin:6px 0">
+    ${devis ? '' : ''}<label>Désignation</label><input list="dl_catalogue" value="${esc(l.d)}" onchange="docChoixLigne(${i},this.value)" placeholder="Ex: Ciment ordinaire">
+    <div class="grid3"><div><label>Unité</label><input value="${esc(l.u)}" oninput="DOC.lignes[${i}].u=this.value" placeholder="sac, m3..."></div>
+    <div><label>Quantité</label><input type="number" step="any" value="${num(l.q)}" oninput="DOC.lignes[${i}].q=num(this.value);docMajTotal()"></div>
+    <div class="fin"><label>Prix unitaire</label><input type="number" step="any" value="${num(l.p)}" oninput="DOC.lignes[${i}].p=num(this.value);docMajTotal()"></div></div>
+    <div class="small fin" id="dc_lt_${i}"></div>
+    <button class="btn btn-red" style="padding:6px;font-size:11px;margin-top:4px" onclick="docSupprimerLigne(${i})">🗑️ Retirer cette ligne</button></div>`;
+}
+function docRenderLignes(){
+  const devis = DOC.type === 'devis';
+  if(!devis){
+    $('dc_lignes').innerHTML = DOC.lignes.map((l, i) => docLigneHtml(i, l, false)).join('');
+  }else{
+    const S = docSections(); let n = 0;
+    $('dc_lignes').innerHTML = S.map((s, k) => {
+      if(!s.g) return s.i.map(i => docLigneHtml(i, DOC.lignes[i], true)).join('');
+      const num100 = ++n * 100, ouvert = S.length === 1 || DOC_OPEN.has(s.g);
+      return `<details class="card" style="padding:0;margin:10px 0" data-g="${esc(s.g)}" ${ouvert ? 'open' : ''} ontoggle="docToggleSec(this)">
+        <summary style="padding:12px;font-weight:800"><span style="color:#0284c7">${num100}</span> · ${esc(s.g)}<span class="fin" id="dc_st_${k}" style="float:right"></span></summary>
+        <div style="padding:0 10px 10px">
+          <label>Nom du lot</label><input value="${esc(s.g)}" onchange="docRenommerSection(${k},this.value)">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
+            <button class="btn btn-grey" style="width:auto;flex:1;padding:8px;font-size:12px" onclick="docDeplacerSection(${k},-1)">▲ Monter</button>
+            <button class="btn btn-grey" style="width:auto;flex:1;padding:8px;font-size:12px" onclick="docDeplacerSection(${k},1)">▼ Descendre</button>
+            <button class="btn btn-grey" style="width:auto;flex:1;padding:8px;font-size:12px" onclick="docLigneDansSection(${k})">➕ Ligne</button>
+            <button class="btn btn-red" style="width:auto;flex:1;padding:8px;font-size:12px" onclick="armer(this,'⚠️ Confirmer ?','🗑️ Retirer le lot',()=>docRetirerSection(${k}))">🗑️ Retirer le lot</button>
+          </div>
+          ${s.i.map(i => docLigneHtml(i, DOC.lignes[i], true)).join('')}
+        </div></details>`;
+    }).join('');
+  }
+  docMajTotal();
+  if(DOC && DOC.statut) docVerrouiller();
+}
+function docAjouterLigne(){ const pr = DOC.lignes[DOC.lignes.length - 1]; DOC.lignes.push({id:docIdLigne(), d:'', u:'', q:1, p:0, g:(pr && pr.g) || ''}); if(pr && pr.g) DOC_OPEN.add((pr.g || '').trim()); docRenderLignes(); }
+
+/* ---- avancement manuel par lots (fiche chantier) ---- */
+function avlChantier(){ return lireChantiers().find(x => x.id === $('fc_id').value) || null; }
+function avlSauver(c){ sauverChantiers(lireChantiers().map(x => x.id === c.id ? c : x)); }
+function avlRender(){
+  const c = avlChantier();
+  if(!c){ $('avl_corps').style.display = 'none'; $('avl_synth').textContent = ''; return; }
+  $('avl_corps').style.display = 'block';
+  const L = c.avLots || [];
+  $('avl_liste').innerHTML = L.length ? L.map(l => `<div class="item" style="padding:8px;margin:6px 0">
+      <div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(l.n)}</b><span class="small">poids <input type="number" step="any" value="${num(l.w)}" style="width:64px;display:inline-block;padding:4px" onchange="avlPoids('${l.id}',this.value)"> %</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><input type="range" min="0" max="100" step="5" value="${num(l.p)}" style="flex:1" oninput="this.nextElementSibling.textContent=this.value+' %'" onchange="avlSet('${l.id}',this.value)"><b style="min-width:52px;text-align:right">${num(l.p)} %</b></div>
+      <div style="display:flex;gap:6px;margin-top:4px"><button class="btn btn-grey" style="padding:6px;font-size:11px;flex:1" onclick="avlSet('${l.id}',100)">✔ Terminé (100 %)</button><button class="btn btn-red" style="padding:6px;font-size:11px;flex:1" onclick="armer(this,'⚠️ Confirmer ?','🗑️ Retirer',()=>avlRetirer('${l.id}'))">🗑️ Retirer</button></div></div>`).join('')
+    : '<div class="note">Aucun lot suivi. Importe ceux du devis ou ajoute-en à la main.</div>';
+  $('avl_man_box').style.display = L.length ? 'none' : 'block';
+  $('avl_man').value = (c.avMan === undefined || c.avMan === null) ? '' : c.avMan;
+  const a = avanc(c);
+  $('avl_synth').innerHTML = `Avancement du chantier : <b>${a} %</b> ${L.length ? '(moyenne des lots)' : (avManuel(c) ? '(saisi à la main)' : '(automatique : dépensé ÷ budget)')}`;
+  $('fc_avancement').value = a;
+}
+function avlMaj(f){ const c = avlChantier(); if(!c) return; f(c); avlSauver(c); avlRender(); try{ renderChantiers(); }catch(e){} }
+function avlSet(id, v){ avlMaj(c => { const l = (c.avLots || []).find(x => x.id === id); if(l) l.p = Math.max(0, Math.min(100, num(v))); }); }
+function avlPoids(id, v){ avlMaj(c => { const l = (c.avLots || []).find(x => x.id === id); if(l) l.w = Math.max(0, num(v)); }); }
+function avlRetirer(id){ avlMaj(c => { c.avLots = (c.avLots || []).filter(x => x.id !== id); }); }
+function avlAjouter(){
+  const n = ($('avl_nom').value || '').trim(); if(!n) return toast('⚠️ Donne un nom au lot');
+  avlMaj(c => { c.avLots = c.avLots || []; c.avLots.push({id:'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4), n, w:num($('avl_poids').value) || 10, p:0}); });
+  $('avl_nom').value = '';
+}
+function avlManuel(v){ avlMaj(c => { c.avMan = String(v).trim() === '' ? '' : Math.max(0, Math.min(100, num(v))); }); }
+function avlImporter(){
+  const c = avlChantier(); if(!c) return;
+  const ds = lireDocs().filter(d => d.type === 'devis' && slugCh(d.chantier) === slugCh(c.nom));
+  if(!ds.length) return toast('⚠️ Aucun devis lié à ce chantier (indique le nom du chantier dans le devis)');
+  const d = ds.filter(x => x.statut === 'accepte').sort((a, b) => String(b.date).localeCompare(String(a.date)))[0] || ds.sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+  const S = devisSections(d).filter(s => s.g); if(!S.length) return toast('⚠️ Ce devis n\'a pas de lots (rubriques)');
+  const tot = S.reduce((a, s) => a + s.st, 0);
+  avlMaj(c => {
+    const old = c.avLots || [];
+    c.avLots = S.map(s => { const o = old.find(x => norm(x.n) === norm(s.g)); return {id:o ? o.id : 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), n:s.g, w:tot > 0 ? Math.round(s.st / tot * 1000) / 10 : Math.round(1000 / S.length) / 10, p:o ? num(o.p) : 0}; });
+  });
+  toast('✅ ' + S.length + ' lots importés du devis ' + (d.numero || ''));
 }
 
 function syncInit(){
