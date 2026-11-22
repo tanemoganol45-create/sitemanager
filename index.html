@@ -126,7 +126,7 @@ body.clientmode #clientApp{display:block}
 </head>
 <body>
 <div class="header">
-  <div id="hdrHub" class="logo"><div class="logo-icon" id="logoN">M</div><div><h1>SITE MANAGER</h1><div class="hsub" id="topInfo">SITE MANAGER · V22.6</div></div></div>
+  <div id="hdrHub" class="logo"><div class="logo-icon" id="logoN">M</div><div><h1>SITE MANAGER</h1><div class="hsub" id="topInfo">SITE MANAGER · V22.7</div></div></div>
   <div id="hdrSite" class="logo hidden"><button class="backbtn" onclick="quitterChantier()">←</button><div><h1 id="hs_nom"></h1><div class="hsub" id="hs_sub"></div></div></div>
   <div style="display:flex;align-items:center;gap:2px">
     <div class="syncb" id="syncBadge" onclick="ouvrirSync()">☁️ non connecté</div>
@@ -2121,7 +2121,7 @@ $('listeAlertes').addEventListener('click', e => {
 function nomEntreprise(){ const n = (store.get('proch_entreprise') || '').trim(); return n.toUpperCase() === 'NYOM BTP' ? '' : n; }
 function majEntreprise(){
   const n = nomEntreprise();
-  $('topInfo').innerText = (n ? 'SITE MANAGER • ' + n : 'SITE MANAGER') + ' · V22.6';
+  $('topInfo').innerText = (n ? 'SITE MANAGER • ' + n : 'SITE MANAGER') + ' · V22.7';
   $('logoN').textContent = 'M';
 }
 function sauverEntreprise(){
@@ -5654,7 +5654,7 @@ const RAC_DEF = [
   {id:'photo', i:'🖼️', l:'Photos en PDF', go:"poOuvrir('photo')"},
   {id:'lib', i:'📚', l:'Bibliothèque', go:"openPage('biblio')"},
   {id:'devlist', i:'📂', l:'Mes devis', go:"devisHub()"},
-  {id:'plans', i:'📐', l:'Plans (Atelier 2D)', go:"window.open('atelier.html','_blank')"}
+  {id:'plans', i:'📐', l:'Plans (Atelier 2D)', go:"location.href='atelier.html?from=sm'"}
 ];
 let RAC_EDIT = false;
 function racLire(){

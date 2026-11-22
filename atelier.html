@@ -35,7 +35,20 @@ header .ib svg{width:22px;height:22px}
 #qbar button.hot{background:#fff7ed;color:#c2410c}
 #qbar button.del{color:var(--bad)}
 #qbar button.set{background:var(--pri2);color:#075985}
-#toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;max-width:88%;text-align:center;z-index:5}
+#home{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+#home[hidden]{display:none}
+.hh{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid var(--bd);flex:none}
+.hh h1{flex:1;min-width:0;font-size:19px;margin:0;word-break:break-word}
+.hb{flex:1;overflow:auto;padding:12px 12px calc(16px + env(safe-area-inset-bottom,0))}
+.hbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.hbar .btn{flex:1 1 auto}
+.hc{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.hc .tt{flex:1;min-width:0}.hc b{display:block;font-size:16px;word-break:break-word}.hc small{color:var(--mut)}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.hd{background:#fff;border:1px solid var(--bd);border-radius:14px;overflow:hidden}
+.hd img{width:100%;aspect-ratio:300/212;display:block;background:#fff;border-bottom:1px solid var(--bd)}
+.hd .tt{padding:8px}
+#toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;max-width:88%;text-align:center;z-index:50}
 #ctx{flex:none;background:#fff;border-top:1px solid var(--bd);padding:6px 8px;max-height:38vh;overflow:auto}
 .row .chip{min-height:34px;padding:0 10px}
 #ctx:empty{display:none}
@@ -87,10 +100,11 @@ td.r,th.r{text-align:right;white-space:nowrap}
     <div class="seg"><button id="m-plan" aria-pressed="true">Plan</button><button id="m-meet" aria-pressed="false">Réunion</button></div>
     <button class="ib" id="b-metres" aria-label="Métrés et coût"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2M16 11v4"/></svg></button>
   </header>
+  <div id="home" hidden></div>
   <div id="offb" hidden style="background:#fff7ed;color:#9a3412;border-bottom:1px solid #fdba74;padding:6px 10px;font-size:12px;font-weight:600">⚠ Fichier ouvert hors connexion : tes plans peuvent être perdus. Ouvre l’Atelier par son lien Internet.</div>
   <div id="mid"><div id="stage">
     <canvas id="cv"></canvas>
-    <div class="fab" id="fabL"><button id="b-undo" aria-label="Annuler"><svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button><button id="b-redo" aria-label="Rétablir"><svg class="i" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button></div>
+    <div class="fab" id="fabL"><button id="b-home" aria-label="Projets" style="font-size:18px">📁</button><button id="b-undo" aria-label="Annuler"><svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button><button id="b-redo" aria-label="Rétablir"><svg class="i" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button></div>
     <div class="fab" id="fabR"><button id="b-txt" aria-label="Taille du texte"><b style="font-size:15px">Aa</b></button><button id="b-zin" aria-label="Zoom avant">+</button><button id="b-zout" aria-label="Zoom arrière">−</button><button id="b-dim" aria-label="Cotes"><svg class="i" viewBox="0 0 24 24"><path d="M3 8v8M21 8v8M3 12h18M7 9l-4 3 4 3M17 9l4 3-4 3"/></svg></button><button id="b-fit" aria-label="Ajuster"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
     <div id="qbar"></div>
     <div id="info"></div>
@@ -128,7 +142,7 @@ const THKS=[.03,.07,.10,.15,.20,.25];const tl=x=>x<.04?'Trait':Math.round(x*100)
 const PTYPES={modifier:{n:'À modifier',c:'#d97706'},renforcer:{n:'À renforcer',c:'#dc2626'},verifier:{n:'À vérifier',c:'#0284c7'},ok:{n:'Validé',c:'#16a34a'}};
 
 /* ---------- document ---------- */
-function newDoc(name){return{v:2,name:name||'Nouveau projet',pid:null,nid:1,walls:[],ops:[],posts:[],foots:[],beams:[],lines:[],cotes:[],rooms:[],
+function newDoc(name){return{v:2,name:name||'Nouveau dessin',pid:null,nid:1,walls:[],ops:[],posts:[],foots:[],beams:[],lines:[],cotes:[],rooms:[],
  set:{H:2.8,thk:.15,snap:true,dm:'none',ang:'droit',fill:'p',postAlign:true,dims:true,grid:true,postS:.2,footS:.8,footH:.3,beamS:.2,spacing:3,pdfCost:false,ls:'c',lw:2,lc:'#0f172a',tc:11,tn:13,ta:11.5,link:true,lang:'libre',rstep:15},
  pr:{agglo:400,sac:5500,barre:6500,mo:8000,aggM2:12.5,aggSac:12,barresPost:4,bet:7},
  meet:{img:null,pins:[],nid:1}};}
@@ -1008,7 +1022,7 @@ function closeSheet(){sheetOpen=false;sheetFn=null;$('#ov').classList.remove('on
 $('#sh-x').onclick=closeSheet;$('#ov').addEventListener('pointerdown',e=>{if(e.target.id==='ov')closeSheet();});
 
 function savedProjects(){try{return JSON.parse(localStorage.getItem('a2d_projets')||'{}');}catch(e){return{};}}
-function saveProject(silent){if(!D.pid)D.pid='p'+Date.now().toString(36);const all=savedProjects();all[D.pid]={id:D.pid,name:D.name,ts:Date.now(),doc:D};
+function saveProject(silent){if(!D.pid)D.pid='p'+Date.now().toString(36);if(!D.pj){D.pj=S.pj||PJ_OLD;D.pjn=S.pjn||'Anciens plans';}const all=savedProjects(),old=all[D.pid];all[D.pid]={id:D.pid,name:D.name,ts:Date.now(),doc:D,ow:(old&&old.ow)||''};
  try{localStorage.setItem('a2d_projets',JSON.stringify(all));S.dirty=false;saveDraft();if(!silent)toast('Projet « '+D.name+' » enregistré.');return true;}catch(e){toast('Mémoire pleine : exporte le projet en fichier.');return false;}}
 function hasContent(){return D.walls.length||D.posts.length||D.meet.pins.length||D.meet.img;}
 function loadDoc(doc){D=Object.assign(newDoc(),clone(doc));D.set=Object.assign(newDoc().set,D.set);D.pr=Object.assign(newDoc().pr,D.pr);D.meet=Object.assign({img:null,pins:[],nid:1},D.meet);
@@ -1017,16 +1031,16 @@ function loadDoc(doc){D=Object.assign(newDoc(),clone(doc));D.set=Object.assign(n
  {const cv=D.lines.filter(l=>wtLine(l)>0);if(cv.length){const th=D.set.thk||.15;cv.forEach(l=>{const t=wtLine(l);D.walls.push({id:l.id,x1:l.x1,y1:l.y1,x2:l.x2,y2:l.y2,t:t||th,f:'p'});});D.lines=D.lines.filter(l=>!(wtLine(l)>0));}}
  if(!D.set.ang)D.set.ang=D.set.ortho===false?'libre':'droit';if(!D.set.fill)D.set.fill='p';if(!D.set.dm)D.set.dm='sel';if(D.set.postAlign==null)D.set.postAlign=true;
  hist=[];redo=[];S.sel=null;S.chain=null;S.draft=null;computeRooms();loadMeetImg();$('#pname').value=D.name;fitNow();refresh();}
-function newProject(){if(hasContent())saveProject(true);loadDoc(newDoc('Nouveau projet'));closeSheet();toast('Nouveau projet vide.');}
+function newProject(){closeSheet();newDessin(D.pj||S.pj||PJ_OLD,D.pjn||S.pjn||'Anciens plans');}
 function sampleDoc(){const d=newDoc('Maison 9×6,5 - Exemple');let n=1;const W=(x1,y1,x2,y2,t)=>d.walls.push({id:n++,x1,y1,x2,y2,t:t||.15});
  W(0,0,9,0,.2);W(9,0,9,6.5,.2);W(9,6.5,0,6.5,.2);W(0,6.5,0,0,.2);W(5.5,0,5.5,6.5,.15);W(5.5,3.2,9,3.2,.15);
  const O=(wid,t,w,k,type,h,s)=>d.ops.push({id:n++,wid,t,w,k,type,h,sill:s,hinge:0,side:0});
  O(4,.0,0,'door','p90',2.1,0);d.ops.pop();O(2,.8,.9,'door','p90',2.1,0);O(5,.35,.9,'door','p90',2.1,0);O(6,.5,.9,'door','p80',2.1,0);
  O(1,.3,1.2,'window','f120',1.2,.9);O(1,.78,1.2,'window','f120',1.2,.9);O(3,.4,1.2,'window','f120',1.2,.9);O(3,.82,1.2,'window','f120',1.2,.9);
  d.rooms.push({id:n++,name:'Séjour',sx:2.7,sy:3.2},{id:n++,name:'Chambre 1',sx:7.2,sy:1.6},{id:n++,name:'Chambre 2',sx:7.2,sy:4.9});d.nid=n;return d;}
-function projectSheet(){const all=Object.values(savedProjects()).sort((a,b)=>b.ts-a.ts);
- return cloudCard()+`<div class="card"><h4>Projet en cours</h4><div class="g2"><button class="btn pri" data-sa="save">Enregistrer</button><button class="btn" data-sa="new">Nouveau projet</button><button class="btn" data-sa="dup">Dupliquer</button><button class="btn" data-sa="sample">Exemple 9×6,5</button></div><div class="note" style="margin-top:6px">Le travail est aussi gardé automatiquement sur cet appareil.</div></div>
- <div class="card"><h4>Mes projets enregistrés (${all.length})</h4>${all.length?all.map(p=>`<div class="proj"><span>${esc(p.name)}</span><button class="btn sm" data-sa="open" data-id="${p.id}">Ouvrir</button><button class="btn sm" data-sa="dl" data-id="${p.id}" title="Télécharger">⬇</button><button class="btn bad sm" data-sa="rm" data-id="${p.id}">✕</button></div>`).join(''):'<div class="note">Aucun projet enregistré pour l\'instant.</div>'}</div>
+function projectSheet(){const all=Object.values(savedProjects()).filter(p=>p.doc&&pjOf(p)===(D.pj||PJ_OLD)).sort((a,b)=>b.ts-a.ts);
+ return cloudCard()+`<div class="card"><h4>Projet en cours</h4><button class="btn" data-sa="home" style="width:100%;margin-bottom:8px">📁 Tous les projets</button><div class="g2"><button class="btn pri" data-sa="save">Enregistrer</button><button class="btn" data-sa="new">Nouveau dessin</button><button class="btn" data-sa="dup">Dupliquer</button><button class="btn" data-sa="sample">Exemple 9×6,5</button></div><div class="note" style="margin-top:6px">Le travail est aussi gardé automatiquement sur cet appareil.</div></div>
+ <div class="card"><h4>Dessins du projet « ${esc(D.pjn||'Anciens plans')} » (${all.length})</h4>${all.length?all.map(p=>`<div class="proj"><span>${esc(p.name)}</span><button class="btn sm" data-sa="open" data-id="${p.id}">Ouvrir</button><button class="btn sm" data-sa="dl" data-id="${p.id}" title="Télécharger">⬇</button><button class="btn bad sm" data-sa="rm" data-id="${p.id}">✕</button></div>`).join(''):'<div class="note">Aucun dessin enregistré pour l\'instant.</div>'}</div>
  <div class="card"><h4>Exporter / importer</h4><div class="g2"><button class="btn pri" data-sa="pdf">Plan en PDF (A4 + cartouche + quantités)</button><button class="btn" data-sa="png">Plan en image (PNG)</button><button class="btn" data-sa="json">Fichier projet (.json) · partager</button><button class="btn pri" data-sa="json-dl">⬇ Télécharger le projet (.json)</button><button class="btn" data-sa="pdf-dl">⬇ Télécharger le PDF</button><button class="btn" data-sa="png-dl">⬇ Télécharger l'image</button><button class="btn" data-sa="import">Ouvrir un fichier projet</button><button class="btn" data-sa="paste">Coller les éléments copiés</button><button class="btn" data-sa="res">Copier le résumé</button></div></div>
  <div class="card"><h4>Réglages</h4>
   <div class="sw"><span>Aimant (10 cm et points)</span><button class="chip" data-sa="t-snap" aria-pressed="${D.set.snap}">${D.set.snap?'Oui':'Non'}</button></div>
@@ -1052,6 +1066,7 @@ $('#sh-b').addEventListener('click',e=>{const b=e.target.closest('[data-sa]');if
  if(a==='save'){saveProject();refreshSheet();}
  else if(a==='cl-in'){CL.A.signInWithPopup(CL.auth,new CL.A.GoogleAuthProvider()).catch(()=>toast('Connexion annulée.'));}
  else if(a==='cl-out'){CL.A.signOut(CL.auth);}
+ else if(a==='home'){closeSheet();if(S.dirty&&hasContent())saveProject(true);homeOpen('pj');}
  else if(a==='new')newProject();
  else if(a==='dup'){const c=clone(D);c.pid=null;c.name=D.name+' (copie)';saveProject(true);loadDoc(c);saveProject(true);refreshSheet();toast('Projet dupliqué.');}
  else if(a==='sample'){if(hasContent())saveProject(true);loadDoc(sampleDoc());closeSheet();}
@@ -1078,7 +1093,7 @@ $('#sh-b').addEventListener('click',e=>{const b=e.target.closest('[data-sa]');if
 $('#sh-b').addEventListener('change',e=>{const f=e.target.dataset.sf,pf=e.target.dataset.pf;const n=parseFloat(String(e.target.value).replace(',','.'));
  if(f&&n>0){D.set[f]=n;touch();draw();}
  if(pf&&n>=0){D.pr[pf]=n;touch();refreshSheet();}});
-$('#f-json').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.walls))throw 0;if(hasContent())saveProject(true);d.pid=null;loadDoc(d);closeSheet();toast('Projet importé.');}catch(_){toast('Fichier non reconnu.');}};r.readAsText(f);};
+$('#f-json').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{try{importAny(JSON.parse(r.result));}catch(_){toast('Fichier non reconnu.');}};r.readAsText(f);};
 
 /* ---------- métrés et coût ---------- */
 function metres(){const L=D.walls.reduce((s,w)=>s+wlen(w),0),H=D.set.H,pr=D.pr;
@@ -1289,7 +1304,7 @@ const CL={mode:'local',can:false,user:'',db:null,F:null,A:null,auth:null,unsub:n
  dev:(()=>{try{let d=localStorage.getItem('a2d_dev');if(!d){d='d'+Math.random().toString(36).slice(2,9);localStorage.setItem('a2d_dev',d);}return d;}catch(e){return'd'+Math.random().toString(36).slice(2,9);}})()};
 function clHash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return s.length+':'+(h>>>0);}
 function clWrite(all){try{localStorage.setItem('a2d_projets',JSON.stringify(all));return true;}catch(e){return false;}}
-function clBadge(){const b=$('#clb');if(!b)return;const on=CL.mode==='cloud';b.style.color=on?'#16a34a':'#94a3b8';b.title=on?'Synchronisé · '+CL.user:'Synchronisation : touche pour voir';if(sheetOpen)refreshSheet();}
+function clBadge(){const b=$('#clb');if(!b)return;const on=CL.mode==='cloud';b.textContent=on?'☁✓':'☁';b.style.color=on?'#16a34a':'#94a3b8';b.title=on?'Synchronisé · '+CL.user:'Synchronisation : touche pour voir';if(sheetOpen)refreshSheet();if(typeof homeRender==='function')homeRender();}
 function cloudCard(){let h='';
  if(CL.mode==='cloud')h=`<div class="note">☁ Synchronisé avec ton compte <b>${esc(CL.user)}</b>. Tes plans se retrouvent sur tes autres appareils connectés.</div><button class="btn" data-sa="cl-out">Se déconnecter</button>`;
  else if(CL.can)h=`<div class="note">${esc(CL.msg||'Tes plans restent sur cet appareil. Connecte-toi pour les retrouver sur ta tablette et ton téléphone.')}</div><button class="btn pri" data-sa="cl-in">Se connecter avec Google</button>`;
@@ -1313,7 +1328,7 @@ async function clAuth(u){
  if(!perm){CL.msg='Ce compte n’est pas autorisé pour la synchronisation. Tes plans restent sur cet appareil.';CL.user=mail;clBadge();return;}
  clAttach(CL.db,CL.F,mail,perm);}
 function clAttach(db,F,mail,perm){
- CL.db=db;CL.F=F;CL.user=mail;CL.mode='cloud';CL.msg='';CL.first=true;
+ CL.db=db;CL.F=F;CL.user=mail;CL.full=!!perm.full;CL.mode='cloud';CL.msg='';CL.first=true;
  const q=perm.full?F.collection(db,'plans'):F.query(F.collection(db,'plans'),F.where('ow','==',mail));
  CL.unsub=F.onSnapshot(q,s=>clRecu(s),e=>{CL.msg='Synchronisation refusée (règles Firebase) : '+((e&&e.code)||'erreur');CL.mode='local';clBadge();});
  clBadge();}
@@ -1331,28 +1346,101 @@ function clApply(id,d){
  const open=D.pid===id;
  if(open){
   if(CL.down||S.draft||S.chain){clearTimeout(CL.rt);CL.rt=setTimeout(()=>clApply(id,d),900);return;}
-  if(S.dirty){const cid=id+'_'+d.dev;doc.pid=cid;doc.name=(d.name||'Plan')+' (autre appareil)';all[cid]={id:cid,name:doc.name,ts:Date.now(),doc};clWrite(all);toast('Modifié ailleurs en même temps : l’autre version est gardée à part.');if(sheetOpen)refreshSheet();return;}}
+  if(S.dirty){const cid=id+'_'+d.dev;doc.pid=cid;doc.name=(d.name||'Plan')+' (autre appareil)';all[cid]={id:cid,name:doc.name,ts:Date.now(),doc,ow:''};clWrite(all);toast('Modifié ailleurs en même temps : l’autre version est gardée à part.');if(sheetOpen)refreshSheet();return;}}
  const img=open?(D.meet&&D.meet.img):(loc&&loc.doc&&loc.doc.meet&&loc.doc.meet.img);
  if(img){doc.meet=doc.meet||{img:null,pins:[],nid:1};if(!doc.meet.img)doc.meet.img=img;}
  doc.pid=id;
  if(open){const v={s:V.s,ox:V.ox,oy:V.oy};loadDoc(doc);D.pid=id;V.s=v.s;V.ox=v.ox;V.oy=v.oy;toast('Plan mis à jour depuis un autre appareil.');draw();}
- const a2=savedProjects();a2[id]={id,name:doc.name||d.name||'Plan',ts:d.u,doc};clWrite(a2);
+ const a2=savedProjects();a2[id]={id,name:doc.name||d.name||'Plan',ts:d.u,doc,ow:d.ow||''};clWrite(a2);
  CL.last[id]=clHash(d.d);if(sheetOpen)refreshSheet();}
 function clRemoved(id){if(D.pid===id)return;const a=savedProjects();if(a[id]){delete a[id];clWrite(a);if(sheetOpen)refreshSheet();}}
 function clPush(){if(CL.mode!=='cloud'||!D.pid||!hasContent())return;clearTimeout(CL.pt);const id=D.pid;CL.pt=setTimeout(()=>clPushProj(savedProjects()[id]),1200);}
 function clPushProj(p){if(CL.mode!=='cloud'||!p||!p.doc)return;let s=JSON.stringify(p.doc);
  if(s.length>900000){const c=clone(p.doc);if(c.meet)c.meet.img=null;s=JSON.stringify(c);if(s.length>900000){if(!CL.warned){CL.warned=true;toast('Plan trop lourd pour la synchronisation : garde-le aussi en fichier .json.');}return;}}
  const h=clHash(s);if(CL.last[p.id]===h)return;CL.last[p.id]=h;
- try{CL.F.setDoc(CL.F.doc(CL.db,'plans',p.id),{id:p.id,name:p.name||'Plan',d:s,u:p.ts,ow:CL.own[p.id]||CL.user,dev:CL.dev}).catch(e=>{delete CL.last[p.id];CL.msg='Envoi refusé : '+((e&&e.code)||'erreur');clBadge();});}catch(e){delete CL.last[p.id];}}
+ try{CL.F.setDoc(CL.F.doc(CL.db,'plans',p.id),{id:p.id,name:p.name||'Plan',d:s,u:p.ts,ow:CL.own[p.id]||p.ow||CL.user,by:CL.user,dev:CL.dev}).catch(e=>{delete CL.last[p.id];CL.msg='Envoi refusé : '+((e&&e.code)||'erreur');clBadge();});}catch(e){delete CL.last[p.id];}}
 function clDel(id){if(CL.mode!=='cloud')return;try{CL.F.deleteDoc(CL.F.doc(CL.db,'plans',id)).catch(()=>{});}catch(e){}delete CL.last[id];}
 function autoSave(){if(!S.dirty||!hasContent())return;saveProject(true);clPush();}
 window.addEventListener('pointerdown',()=>{CL.down=true;},true);
 ['pointerup','pointercancel'].forEach(t=>window.addEventListener(t,()=>{CL.down=false;},true));
 
+/* ===== V17 : projets et dessins ===== */
+const PJ_OLD='anciens';
+const H={view:'pj',pj:null,pn:'',own:''};
+const FROM_SM=(()=>{try{if(/[?&]from=sm\b/.test(location.search)){sessionStorage.setItem('a2d_from','1');return true;}return sessionStorage.getItem('a2d_from')==='1';}catch(e){return /[?&]from=sm\b/.test(location.search);}})();
+function pjOf(r){return(r.doc&&r.doc.pj)||PJ_OLD;}
+function pjNm(r){return(r.doc&&r.doc.pjn)||'Anciens plans';}
+function pjMap(){try{return JSON.parse(localStorage.getItem('a2d_pj')||'{}');}catch(e){return{};}}
+function pjSave(m){try{localStorage.setItem('a2d_pj',JSON.stringify(m));}catch(e){}}
+function isMine(r){return !r.ow||r.ow===CL.user;}
+function allPlans(){return Object.values(savedProjects()).filter(r=>r&&r.doc&&Array.isArray(r.doc.walls));}
+function pjGroups(team){const g={};
+ allPlans().forEach(r=>{if(!!team===isMine(r))return;const k=pjOf(r)+'|'+(team?r.ow:'');const o=g[k]||(g[k]={id:pjOf(r),name:pjNm(r),ow:team?r.ow:'',plans:[],ts:0});o.plans.push(r);o.ts=Math.max(o.ts,r.ts||0);});
+ if(!team){const m=pjMap();Object.values(m).forEach(p=>{const k=p.id+'|';if(!g[k])g[k]={id:p.id,name:p.name,ow:'',plans:[],ts:p.ts||0};});}
+ return Object.values(g).sort((a,b)=>b.ts-a.ts);}
+function dstr(ts){try{return new Date(ts).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}catch(e){return'';}}
+const TH={};
+function thumb(r){const k=r.id+':'+r.ts;if(TH[k]!==undefined)return TH[k];let url='';
+ try{const c=document.createElement('canvas');c.width=300;c.height=212;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,300,212);
+  const keep=D;D=Object.assign(newDoc(),clone(r.doc));D.set=Object.assign(newDoc().set,D.set);D.pr=Object.assign(newDoc().pr,D.pr);D.meet=Object.assign({img:null,pins:[],nid:1},D.meet);
+  try{if(D.walls.length||D.lines.length||D.posts.length){const v={s:1,ox:0,oy:0};fitView(v,300,212,14,bounds());drawPlan(g,300,212,v,{k:.4});}}finally{D=keep;}
+  url=c.toDataURL('image/png');}catch(e){url='';}
+ TH[k]=url;return url;}
+function pjCard(g,team){return `<div class="hc" data-h="pj" data-id="${esc(g.id)}" data-ow="${esc(g.ow)}" data-pn="${esc(g.name)}" style="cursor:pointer"><span style="font-size:26px">📁</span><div class="tt"><b>${esc(g.name)}</b><small>${g.plans.length} dessin${g.plans.length>1?'s':''}${team?' · '+esc(g.ow):''}${g.ts?' · '+dstr(g.ts):''}</small></div>${team?'':`<button class="btn sm" data-h="rnpj" data-id="${esc(g.id)}" data-pn="${esc(g.name)}">✎</button><button class="btn bad sm" data-h="dlpj" data-id="${esc(g.id)}" data-pn="${esc(g.name)}">🗑</button>`}</div>`;}
+function pjHtml(){const mine=pjGroups(false),team=pjGroups(true);
+ const last=allPlans().filter(r=>r.doc.walls.length||(r.doc.posts&&r.doc.posts.length)).sort((a,b)=>b.ts-a.ts)[0];
+ const on=CL.mode==='cloud';
+ return `<div class="hh">${FROM_SM?'<a class="btn sm" href="./" style="text-decoration:none;color:var(--tx)">← SITE MANAGER</a>':''}<h1>Projets</h1><button class="ib" data-h="cl" style="color:${on?'#16a34a':'#94a3b8'};font-size:18px;width:auto;padding:0 10px">${on?'☁✓':'☁'}</button></div>
+ <div class="hb"><div class="hbar"><button class="btn pri" data-h="npj">+ Créer un projet</button><button class="btn" data-h="imp">Importer un fichier</button><button class="btn" data-h="exall">Tout sauvegarder (.json)</button></div>
+ ${last?`<div class="hc" data-h="open" data-id="${esc(last.id)}" style="cursor:pointer;border-color:var(--pri)"><div class="tt"><small>Continuer</small><b>${esc(last.name)}</b><small>${esc(pjNm(last))} · ${dstr(last.ts)}</small></div><span style="font-size:18px">▶</span></div>`:''}
+ ${mine.map(g=>pjCard(g)).join('')||'<div class="note">Aucun projet pour l’instant. Touche « Créer un projet ».</div>'}
+ ${team.length?'<h4 style="margin:14px 2px 8px">Équipe</h4>'+team.map(g=>pjCard(g,true)).join(''):''}</div>`;}
+function drHtml(){const plans=allPlans().filter(r=>pjOf(r)===H.pj&&(H.own?r.ow===H.own:isMine(r))).sort((a,b)=>b.ts-a.ts);
+ return `<div class="hh"><button class="btn sm" data-h="back">← Projets</button><h1>${esc(H.pn)}${H.own?' <small style="font-weight:500;color:var(--mut)">· '+esc(H.own)+'</small>':''}</h1></div>
+ <div class="hb"><div class="hbar">${H.own?'':'<button class="btn pri" data-h="ndr">+ Créer un dessin</button>'}<button class="btn" data-h="exj">Sauvegarder ce projet (.json)</button>${H.own?'':'<button class="btn" data-h="imp">Importer</button>'}</div>
+ <div class="hgrid">${plans.map(r=>`<div class="hd"><img data-h="open" data-id="${esc(r.id)}" src="${thumb(r)}" alt=""><div class="tt"><b style="font-size:14px;word-break:break-word">${esc(r.name)}</b><small style="display:block;color:var(--mut)">${dstr(r.ts)}</small><div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap"><button class="btn sm" data-h="open" data-id="${esc(r.id)}">Ouvrir</button><button class="btn sm" data-h="rndr" data-id="${esc(r.id)}">✎</button><button class="btn sm" data-h="cpdr" data-id="${esc(r.id)}" title="Copier vers un autre projet">⧉</button><button class="btn bad sm" data-h="dldr" data-id="${esc(r.id)}">🗑</button></div></div></div>`).join('')||'<div class="note" style="grid-column:1/-1">Aucun dessin dans ce projet.</div>'}</div></div>`;}
+function homeRender(){const h=$('#home');if(!h||h.hidden)return;const sc=h.querySelector('.hb');const top=sc?sc.scrollTop:0;h.innerHTML=H.view==='dr'?drHtml():pjHtml();const nb=h.querySelector('.hb');if(nb)nb.scrollTop=top;}
+function homeOpen(view){if(view)H.view=view;else H.view='pj';$('#home').hidden=false;homeRender();}
+function homeClose(){$('#home').hidden=true;}
+function newDessin(pj,pn){if(S.dirty&&hasContent())saveProject(true);loadDoc(newDoc('Nouveau dessin'));D.pj=pj;D.pjn=pn;S.pj=pj;S.pjn=pn;D.pid=null;saveProject(true);homeClose();toast('Nouveau dessin créé.');}
+function openPlan(id){const p=savedProjects()[id];if(!p)return;if(D.pid!==id&&S.dirty&&hasContent())saveProject(true);if(D.pid!==id){loadDoc(p.doc);D.pid=p.id;}S.pj=pjOf(p);S.pjn=pjNm(p);homeClose();}
+function renamePj(id,nm){const all=savedProjects(),ids=[];Object.values(all).forEach(r=>{if(r.doc&&pjOf(r)===id&&isMine(r)){r.doc.pjn=nm;r.ts=Date.now();ids.push(r.id);}});clWrite(all);const m=pjMap();if(m[id]){m[id].name=nm;pjSave(m);}if(D.pj===id)D.pjn=nm;ids.forEach(i=>clPushProj(all[i]));}
+function delPlan(id){const all=savedProjects();delete all[id];clWrite(all);clDel(id);if(D.pid===id){loadDoc(newDoc('Nouveau dessin'));D.pid=null;}}
+function jn(s){return(s||'export').replace(/[^\w\-]+/g,'_');}
+function dlJson(name,obj){FORCE_DL=true;const p=saveFile(name,new Blob([JSON.stringify(obj)],{type:'application/json'}));Promise.resolve(p).finally(()=>{FORCE_DL=false;});}
+function exportPj(){if(S.dirty&&hasContent())saveProject(true);const plans=allPlans().filter(r=>pjOf(r)===H.pj&&(H.own?r.ow===H.own:isMine(r))).map(r=>r.doc);if(!plans.length)return toast('Ce projet est vide.');dlJson(jn(H.pn)+'.a2d-projet.json',{a2d:'projet',v:1,name:H.pn,pj:H.pj,plans});}
+function exportAll(){if(S.dirty&&hasContent())saveProject(true);const plans=allPlans().map(r=>r.doc);if(!plans.length)return toast('Rien à sauvegarder.');dlJson('Atelier2D_tout.a2d-tout.json',{a2d:'tout',v:1,plans});}
+function importAny(d){
+ if(d&&Array.isArray(d.plans)&&(d.a2d==='projet'||d.a2d==='tout')){let n=0;const all=savedProjects(),ids=[];
+  d.plans.forEach((p,i)=>{if(!p||!Array.isArray(p.walls))return;const c=clone(p);c.pid='p'+Date.now().toString(36)+i+Math.random().toString(36).slice(2,4);if(!c.pj){c.pj=d.pj||PJ_OLD;c.pjn=d.name||'Anciens plans';}all[c.pid]={id:c.pid,name:c.name||'Dessin',ts:Date.now()+i,doc:c,ow:''};ids.push(c.pid);n++;});
+  clWrite(all);ids.forEach(i=>clPushProj(all[i]));toast(n+' dessin'+(n>1?'s':'')+' importé'+(n>1?'s':'')+'.');homeRender();closeSheet();return;}
+ if(!d||!Array.isArray(d.walls))throw 0;
+ if(S.dirty&&hasContent())saveProject(true);d.pid=null;
+ const inHome=!$('#home').hidden;if(inHome&&H.view==='dr'&&!H.own){d.pj=H.pj;d.pjn=H.pn;}
+ loadDoc(d);saveProject(true);clPush();
+ if(inHome){toast('Dessin importé.');homeRender();}else{closeSheet();toast('Dessin importé.');}}
+function clToggle(){if(CL.mode==='cloud')return toast('Synchronisé · '+CL.user);if(CL.can)return CL.A.signInWithPopup(CL.auth,new CL.A.GoogleAuthProvider()).catch(()=>toast('Connexion annulée.'));toast(CL.msg||'Hors connexion : les plans restent sur cet appareil.');}
+$('#home').addEventListener('click',e=>{const b=e.target.closest('[data-h]');if(!b)return;const a=b.dataset.h,id=b.dataset.id;
+ if(a==='pj'){H.view='dr';H.pj=id;H.pn=b.dataset.pn||'';H.own=b.dataset.ow||'';S.pj=id;S.pjn=H.pn;homeRender();}
+ else if(a==='back'){H.view='pj';homeRender();}
+ else if(a==='npj'){const n=prompt('Nom du projet ?','Nouveau projet');if(n===null)return;const nm=n.trim()||'Nouveau projet',m=pjMap(),pid='j'+Date.now().toString(36);m[pid]={id:pid,name:nm,ts:Date.now()};pjSave(m);H.view='dr';H.pj=pid;H.pn=nm;H.own='';S.pj=pid;S.pjn=nm;homeRender();}
+ else if(a==='rnpj'){const n=prompt('Nouveau nom du projet ?',b.dataset.pn||'');if(n===null||!n.trim())return;renamePj(id,n.trim());homeRender();}
+ else if(a==='dlpj'){const pl=allPlans().filter(r=>pjOf(r)===id&&isMine(r));if(!confirm('Supprimer le projet « '+(b.dataset.pn||'')+' » et ses '+pl.length+' dessin(s) ? Cette action est définitive.'))return;pl.forEach(r=>delPlan(r.id));const m=pjMap();delete m[id];pjSave(m);homeRender();}
+ else if(a==='ndr')newDessin(H.pj,H.pn);
+ else if(a==='open')openPlan(id);
+ else if(a==='rndr'){const all=savedProjects(),r=all[id];if(!r)return;const n=prompt('Nom du dessin ?',r.name||'');if(n===null||!n.trim())return;r.name=r.doc.name=n.trim();r.ts=Date.now();clWrite(all);if(D.pid===id){D.name=r.name;$('#pname').value=r.name;}clPushProj(r);homeRender();}
+ else if(a==='cpdr'){const all=savedProjects(),r=all[id];if(!r)return;const gs=pjGroups(false);const t=prompt('Copier vers quel projet ? Tape son numéro :\n'+gs.map((g,i)=>(i+1)+'. '+g.name).join('\n'));const k=parseInt(t,10)-1;if(!(k>=0&&k<gs.length))return;const g=gs[k];const c=clone(r.doc);c.pid='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,4);c.pj=g.id;c.pjn=g.name;c.name=r.name+' (copie)';all[c.pid]={id:c.pid,name:c.name,ts:Date.now(),doc:c,ow:''};clWrite(all);clPushProj(all[c.pid]);toast('Copié dans « '+g.name+' ».');homeRender();}
+ else if(a==='dldr'){const r=savedProjects()[id];if(!r||!confirm('Supprimer le dessin « '+r.name+' » ?'))return;delPlan(id);homeRender();}
+ else if(a==='exj')exportPj();
+ else if(a==='exall')exportAll();
+ else if(a==='imp')$('#f-json').click();
+ else if(a==='cl')clToggle();});
+$('#b-home').onclick=()=>{if(S.dirty&&hasContent())saveProject(true);H.view='pj';homeOpen();};
+
 /* démarrage */
 (function init(){let d=null;try{d=JSON.parse(localStorage.getItem('a2d_draft')||'null');}catch(e){}
  if(d&&Array.isArray(d.walls)&&(d.walls.length||d.posts&&d.posts.length||(d.meet&&d.meet.pins&&d.meet.pins.length)))loadDoc(d);else loadDoc(sampleDoc());
- renderTools();refresh();setTimeout(()=>{fitNow();draw();},30);clStart();window.__cl={CL,clAttach,clRecu,clApply,clPushProj,autoSave,savedProjects};window.__a2d={toWalls,msAct,D:()=>D,S,V,loadDoc,addWall,msMirror,msBBox,setTool,computeRooms,metres,setMode,squareAll,dupSel,dupPlace};})();
+ renderTools();refresh();setTimeout(()=>{fitNow();draw();},30);clStart();homeOpen('pj');window.__cl={CL,clAttach,clRecu,clApply,clPushProj,autoSave,savedProjects};window.__a2d={toWalls,msAct,D:()=>D,S,V,loadDoc,addWall,msMirror,msBBox,setTool,computeRooms,metres,setMode,squareAll,dupSel,dupPlace};})();
 </script>
 </body>
 </html>
