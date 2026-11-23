@@ -243,6 +243,14 @@ function autoDims(w){const L=wlen(w);if(L<.2)return[];const ux=(w.x2-w.x1)/L,uy=
   else res.forEach(r=>out.push({a:[w.x1+(w.x2-w.x1)*r.f+r.nx*w.t/2,w.y1+(w.y2-w.y1)*r.f+r.ny*w.t/2],d:r.d,nx:r.nx,ny:r.ny}));}
  return out.map(o=>({a:o.a,b:[o.a[0]+o.nx*o.d,o.a[1]+o.ny*o.d],d:o.d}));}
 function keepDims(w){const a=autoDims(w);if(!a.length)return toast('Aucun mur en face.');push();a.forEach(o=>D.cotes.push({id:NID(),x1:o.a[0],y1:o.a[1],x2:o.b[0],y2:o.b[1],off:0}));refresh();toast(a.length+' cote(s) conservée(s).');}
+const RN_BASE=['Salon','Séjour','Salle à manger','Cuisine','Chambre à coucher','Chambre parentale','Toilettes','W.C','Douche','Salle de bain','Dégagement','Couloir','Hall','Sas','Escalier','Cellier','Magasin','Véranda','Terrasse','Balcon','Parking','Garage','Bureau','Salle d\'attente','Salon privé','Cave','Buanderie','Local technique'];
+function rnRecent(){try{const a=JSON.parse(localStorage.getItem('a2d_rn')||'[]');return Array.isArray(a)?a.filter(x=>typeof x==='string'):[];}catch(e){return[];}}
+function rnSave(n){n=(n||'').trim();if(!n||n.length>30||RN_BASE.includes(n)||/^Pièce \d+$/.test(n)||RN_BASE.some(b=>new RegExp('^'+b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+' \\d+$').test(n)))return;try{const a=rnRecent().filter(x=>x!==n);a.unshift(n);localStorage.setItem('a2d_rn',JSON.stringify(a.slice(0,10)));}catch(e){}}
+function rnChips(){const all=RN_BASE.concat(rnRecent().filter(x=>!RN_BASE.includes(x)));return '<div class="row" style="max-height:124px;overflow:auto;align-items:flex-start">'+all.map(n=>'<button class="chip" data-act="rnp" data-v="'+esc(n)+'">'+esc(n)+'</button>').join('')+'</div>';}
+function pickRoomName(r,base){const esc2=base.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),re=new RegExp('^'+esc2+'(?: (\\d+))?$','i');if(re.test(r.name))return toast(r.name);
+ push();const others=D.rooms.filter(x=>x!==r&&!x.dup&&re.test(x.name));let nm=base;
+ if(others.length){let mx=0;others.forEach(x=>{const m=re.exec(x.name);if(m[1])mx=Math.max(mx,+m[1]);});others.forEach(x=>{if(!re.exec(x.name)[1]){mx++;x.name=base+' '+mx;}});nm=base+' '+(mx+1);}
+ r.name=nm;computeRooms();refresh();touch();toast(nm);}
 function addCote(a,b){if(Math.hypot(b[0]-a[0],b[1]-a[1])<.05)return toast('Points trop proches.');push();D.cotes.push({id:NID(),x1:a[0],y1:a[1],x2:b[0],y2:b[1],off:0});toast('Cote : '+fmt(Math.hypot(b[0]-a[0],b[1]-a[1]),2)+' m');}
 function snapPt(p,from,excl,force,skip){let x=p[0],y=p[1];const kind=force||S.tool==='wall'||S.tool==='beam'||S.tool==='line',tol=16/V.s;
  const pts=[];const ex=k=>excl&&excl.has(k);
@@ -345,7 +353,8 @@ function drawPlan(g,W,H,v,o){o=o||{};const K=o.k||1,KS=o.k?1:(D.set.fix?1:Math.m
  D.ops.forEach(op=>{const G=opGeom(op);if(!G)return;const T=typeOf(op),w=op.w,t=G.w.t,x=sx(G.cx),y=sy(G.cy),ux=G.ux,uy=G.uy,nx=G.nx,ny=G.ny,hw=w/2*v.s,ht=t/2*v.s;
   g.fillStyle=C.bg;g.beginPath();g.moveTo(x-ux*hw+nx*(ht+1),y-uy*hw+ny*(ht+1));g.lineTo(x+ux*hw+nx*(ht+1),y+uy*hw+ny*(ht+1));g.lineTo(x+ux*hw-nx*(ht+1),y+uy*hw-ny*(ht+1));g.lineTo(x-ux*hw-nx*(ht+1),y-uy*hw-ny*(ht+1));g.closePath();g.fill();
   g.lineWidth=1.5*K*XL;g.strokeStyle=C.open;
-  const jamb=(s)=>{g.beginPath();g.moveTo(x+ux*hw*s+nx*ht,y+uy*hw*s+ny*ht);g.lineTo(x+ux*hw*s-nx*ht,y+uy*hw*s-ny*ht);g.stroke();};jamb(1);jamb(-1);
+  if(T.ouv)g.lineWidth=2.2*K*XL;const jamb=(s)=>{g.beginPath();g.moveTo(x+ux*hw*s+nx*ht,y+uy*hw*s+ny*ht);g.lineTo(x+ux*hw*s-nx*ht,y+uy*hw*s-ny*ht);g.stroke();};jamb(1);jamb(-1);
+  if(T.ouv){g.save();g.setLineDash([5*K,3.5*K]);g.lineWidth=1*K*XL;g.globalAlpha=.8;[1,-1].forEach(sg=>{g.beginPath();g.moveTo(x-ux*hw+nx*ht*sg,y-uy*hw+ny*ht*sg);g.lineTo(x+ux*hw+nx*ht*sg,y+uy*hw+ny*ht*sg);g.stroke();});g.restore();}
   if(op.k==='window'||T.gl){g.beginPath();g.moveTo(x-ux*hw+nx*ht*.45,y-uy*hw+ny*ht*.45);g.lineTo(x+ux*hw+nx*ht*.45,y+uy*hw+ny*ht*.45);g.moveTo(x-ux*hw-nx*ht*.45,y-uy*hw-ny*ht*.45);g.lineTo(x+ux*hw-nx*ht*.45,y+uy*hw-ny*ht*.45);g.moveTo(x-ux*hw,y-uy*hw);g.lineTo(x+ux*hw,y+uy*hw);g.stroke();}
   if(op.k==='door'){g.strokeStyle=C.door;g.lineWidth=1.4*K*XL;const sd0=op.side?-1:1;
    const leaf=(hx,hy,dir,len,sd)=>{const ex=hx+dir*ux*len,ey=hy+dir*uy*len,ox=hx+nx*sd*len,oy=hy+ny*sd*len;g.beginPath();g.moveTo(hx,hy);g.lineTo(ox,oy);g.stroke();
@@ -956,7 +965,7 @@ function renderCtx(){const el=$('#ctx');let h='';const sel=getSel(),t=S.tool;
    <div class="row">${sel.k==='door'?'<button class="btn sm" data-act="hinge">↔ Charnière</button><button class="btn sm" data-act="side">↕ Sens</button>':''}<button class="btn bad sm" data-act="del">Supprimer</button></div>`;}
   else if(k==='post')h+=`<div class="row"><label>Poteau</label><span class="note">long.</span><input class="inp n" inputmode="decimal" data-f="psl" value="${fmt(sel.sl*100,0).replace(/\s/g,'')}"><span>cm</span><span class="note">larg.</span><input class="inp n" inputmode="decimal" data-f="psw" value="${fmt(sel.sw*100,0).replace(/\s/g,'')}"><span>cm</span></div><div class="row"><button class="btn sm" data-act="prot">↻ Pivoter 90°</button><button class="btn sm" data-act="pal">Aligner au mur</button><button class="btn bad sm" data-act="del">Supprimer</button></div>`;
   else if(k==='foot')h+=`<div class="row"><label>Semelle</label>${[.6,.8,1,1.2].map(x=>chip('fs',x,Math.round(x*100)+'×'+Math.round(x*100),Math.abs(sel.s-x)<.001)).join('')}<button class="btn bad sm" data-act="del">Supprimer</button></div>`;
-  else if(k==='room')h+=`<div class="row"><label>Pièce</label><input class="inp" data-f="rname" value="${esc(sel.name)}" style="flex:1;min-width:120px"><b>${sel.area!=null?fmt(sel.area,2)+' m²':'non fermée'}</b></div>${sizeRow('Nom','tn',sel.tn)}${sizeRow('Surface','ta',sel.ta)}<div class="row"><span class="note">Surface intérieure (sans l'épaisseur des murs).</span><button class="btn bad sm" data-act="del">Supprimer</button></div>`;}
+  else if(k==='room')h+=`<div class="row"><label>Pièce</label><input class="inp" data-f="rname" value="${esc(sel.name)}" style="flex:1;min-width:120px"><b>${sel.area!=null?fmt(sel.area,2)+' m²':'non fermée'}</b></div>${rnChips()}${sizeRow('Nom','tn',sel.tn)}${sizeRow('Surface','ta',sel.ta)}<div class="row"><span class="note">Surface intérieure (sans l'épaisseur des murs).</span><button class="btn bad sm" data-act="del">Supprimer</button></div>`;}
  else if(t==='select')h+='<div class="note">Touche un élément pour le modifier. Glisse sur le vide pour déplacer le plan, pince pour zoomer.</div>';
  else if(t==='wall'||t==='beam'){h+=`<div class="row">`+(t==='wall'?`<label>Épaisseur</label>${THKS.map(x=>chip('thk',x,tl(x),Math.abs(D.set.thk-x)<.001)).join('')}`:`<label>Poutre</label>${[.15,.2,.25,.3].map(x=>chip('bs',x,Math.round(x*100)+' cm',Math.abs(D.set.beamS-x)<.001)).join('')}`)+`</div>
    <div class="row"><button class="chip" data-act="snap" aria-pressed="${D.set.snap}">Aimant</button></div>
@@ -978,7 +987,7 @@ function renderCtx(){const el=$('#ctx');let h='';const sel=getSel(),t=S.tool;
 $('#ctx').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,v=b.dataset.v,s=getSel();
  const chg=(fn)=>{push();fn();computeRooms();refresh();};
  switch(a){
-  case 'tsv':{const kv=v.split(':');chg(()=>s[kv[0]]=+kv[1]);break;}case 'tsz':{const kv=v.split(':');chg(()=>s[kv[0]]=Math.max(.3,Math.min(4,Math.round(((s[kv[0]]||1)+ +kv[1])*100)/100)));break;}
+  case 'rnp':{pickRoomName(s,v);break;}case 'tsv':{const kv=v.split(':');chg(()=>s[kv[0]]=+kv[1]);break;}case 'tsz':{const kv=v.split(':');chg(()=>s[kv[0]]=Math.max(.3,Math.min(4,Math.round(((s[kv[0]]||1)+ +kv[1])*100)/100)));break;}
   case 'wt':chg(()=>s.t=+v);break;case 'wall-all':chg(()=>{D.walls.forEach(w=>{w.t=s.t;w.f=s.f||'p';});D.set.thk=s.t;D.set.fill=s.f||'p';});break;case 'closepanel':S.panel=false;renderCtx();draw();break;case 'wf':chg(()=>s.f=v);break;case 'sq':squareWall(s,+v);break;case 'dfill':D.set.fill=v;touch();renderCtx();break;case 'ang':D.set.ang=v;touch();renderCtx();break;case 'palign':D.set.postAlign=!D.set.postAlign;touch();renderCtx();break;case 'prot':chg(()=>s.a=(s.a||0)+R90);break;case 'pal':{const ok=alignPost(s,s.x,s.y,true);if(!ok)toast('Aucun mur proche.');else{push();touch();refresh();}break;}
   case 'ls':case 'lw':case 'lc':{const key=a,val=a==='lw'?+v:v,m={ls:'st',lw:'w',lc:'col'}[a];if(s&&S.sel&&S.sel.k==='line')push();D.set[key]=val;if(s&&S.sel&&S.sel.k==='line')s[m]=val;touch();refresh();break;}
   case 'shp':S.shp=v;renderCtx();break;
@@ -1011,7 +1020,7 @@ $('#ctx').addEventListener('change',e=>{const f=e.target.dataset.f;if(!f)return;
  else if(f==='oh'){const h=num();if(!(h>=.3&&h<=4))return renderCtx();push();s.h=h;refresh();}
  else if(f==='os'){const h=num();if(!(h>=0&&h<=3))return renderCtx();push();s.sill=h;refresh();}
  else if(f==='psl'||f==='psw'){const v=num()/100;if(!(v>=.05&&v<=1.5))return renderCtx();push();s[f==='psl'?'sl':'sw']=v;D.set[f==='psl'?'postL':'postW']=v;refresh();}
- else if(f==='rname'){push();s.name=e.target.value||'Pièce';draw();touch();}
+ else if(f==='rname'){push();s.name=e.target.value||'Pièce';rnSave(s.name);draw();touch();}
  else if(f==='note'||f==='resp'||f==='due'){s[f]=e.target.value;touch();}});
 $('#ctx').addEventListener('input',e=>{const f=e.target.dataset.f;const s=getSel();if(s&&(f==='note'||f==='resp'))s[f]=e.target.value;if(s&&f==='rname'){s.name=e.target.value;draw();}});
 
@@ -1030,7 +1039,7 @@ function loadDoc(doc){D=Object.assign(newDoc(),clone(doc));D.set=Object.assign(n
  let mx=0;[D.walls,D.ops,D.posts,D.foots,D.beams,D.lines,D.cotes,D.rooms].forEach(a=>a.forEach(o=>mx=Math.max(mx,o.id||0)));D.nid=Math.max(D.nid,mx+1);
  D.posts.forEach(p=>{if(p.sw==null){p.sw=p.sl=p.s||.2;}p.a=p.a||0;});D.foots.forEach(f=>{f.a=f.a||0;});D.walls.forEach(w=>{w.f=w.f||'p';});
  {const cv=D.lines.filter(l=>wtLine(l)>0);if(cv.length){const th=D.set.thk||.15;cv.forEach(l=>{const t=wtLine(l);D.walls.push({id:l.id,x1:l.x1,y1:l.y1,x2:l.x2,y2:l.y2,t:t||th,f:'p'});});D.lines=D.lines.filter(l=>!(wtLine(l)>0));}}
- if(!D.set.ang)D.set.ang=D.set.ortho===false?'libre':'droit';if(!D.set.fill)D.set.fill='p';if(!D.set.dm)D.set.dm='sel';if(D.set.postAlign==null)D.set.postAlign=true;
+ if(!D.set.ang)D.set.ang=D.set.ortho===false?'libre':'droit';if(!D.set.fill)D.set.fill='p';if(!D.set.dm||D.set.dm==='all')D.set.dm='sel';if(D.set.postAlign==null)D.set.postAlign=true;
  hist=[];redo=[];S.sel=null;S.chain=null;S.draft=null;computeRooms();loadMeetImg();$('#pname').value=D.name;fitNow();refresh();}
 function newProject(){closeSheet();newDessin(D.pj||S.pj||PJ_OLD,D.pjn||S.pjn||'Anciens plans');}
 function sampleDoc(){const d=newDoc('Maison 9×6,5 - Exemple');let n=1;const W=(x1,y1,x2,y2,t)=>d.walls.push({id:n++,x1,y1,x2,y2,t:t||.15});
@@ -1046,7 +1055,7 @@ function projectSheet(){const all=Object.values(savedProjects()).filter(p=>p.doc
  <div class="card"><h4>Réglages</h4>
   <div class="sw"><span>Aimant (10 cm et points)</span><button class="chip" data-sa="t-snap" aria-pressed="${D.set.snap}">${D.set.snap?'Oui':'Non'}</button></div>
   <div class="sw"><span>Angles des murs</span><span>${[['droit','90°'],['pas15','15°'],['libre','Libre']].map(([k,l])=>`<button class="chip" data-sa="ang-${k}" aria-pressed="${D.set.ang===k}">${l}</button>`).join(' ')}</span></div>
-  <div class="sw"><span>Cotes sur le plan</span><span>${[['none','Aucune'],['sel','Sélection'],['all','Toutes']].map(([k,l])=>`<button class="chip" data-sa="dm-${k}" aria-pressed="${D.set.dm===k}">${l}</button>`).join(' ')}</span></div>
+  <div class="sw"><span>Cotes sur le plan</span><span>${[['none','Aucune'],['sel','Sélection']].map(([k,l])=>`<button class="chip" data-sa="dm-${k}" aria-pressed="${D.set.dm===k}">${l}</button>`).join(' ')}</span></div>
   <div class="sw"><span>Cotes en bulles (ancien style)</span><button class="chip" data-sa="t-bub" aria-pressed="${!!D.set.bub}">${D.set.bub?'Oui':'Non'}</button></div>
   <div class="sw"><span>Texte de taille fixe (ne suit pas le zoom)</span><button class="chip" data-sa="t-fix" aria-pressed="${!!D.set.fix}">${D.set.fix?'Oui':'Non'}</button></div>
   <div class="sw"><span>Afficher les axes des murs</span><button class="chip" data-sa="t-axes" aria-pressed="${!!D.set.axes}">${D.set.axes?'Oui':'Non'}</button></div>
@@ -1145,7 +1154,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-ma]');if(!
 
 /* ---------- export plan A4 : plan + synthèse + cartouche ---------- */
 function planCanvas(){const W=1754,H=1240,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
- const v={ox:0,oy:0,s:1};fitView(v,W,H,110,bounds());drawPlan(g,W,H,v,{C:CE,dims:true,noUi:true,k:2.2,noDot:true});return c;}
+ const v={ox:0,oy:0,s:1};fitView(v,W,H,110,bounds());drawPlan(g,W,H,v,{C:CE,dims:'none',noUi:true,k:2.2,noDot:true});return c;}
 function outerBox(){if(!D.walls.length)return 0;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;D.walls.forEach(w=>{const h=w.t/2;x0=Math.min(x0,w.x1-h,w.x2-h);x1=Math.max(x1,w.x1+h,w.x2+h);y0=Math.min(y0,w.y1-h,w.y2-h);y1=Math.max(y1,w.y1+h,w.y2+h);});return(x1-x0)*(y1-y0);}
 function loadLogo(){return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=LOGO;});}
 async function renderSheet(vec){
@@ -1169,7 +1178,7 @@ async function renderSheet(vec){
   cells.forEach((cl,i)=>{if(i){g.fillStyle=OR;g.fillRect(x,cy+16,3,ch-32);}g.fillStyle='#f6b37a';g.font='700 17px system-ui,sans-serif';g.textAlign='left';g.textBaseline='top';g.fillText(cl[0],x+22,cy+24);g.fillStyle='#fff';g.font='700 24px system-ui,sans-serif';let tx=cl[1];while(g.measureText(tx).width>cw[i]-36&&tx.length>3)tx=tx.slice(0,-2);g.fillText(tx,x+22,cy+58);x+=cw[i];});};
  // page 1 : le plan
  const[c1,g1]=mk(W1,H1);
- g1.save();g1.beginPath();g1.rect(fx,fy,fw,fh);g1.clip();g1.translate(fx,fy);const og=opGroups(),svT=[D.set.tc,D.set.tn,D.set.ta];D.set.tc=11;D.set.tn=13;D.set.ta=11.5;try{drawPlan(g1,fw,fh,v,{C:CX,dims:true,noUi:true,k:2.1,kt:1.8,noDot:true,exec:true,tags:D.set.tags?og.map:null,noRooms:!D.set.pdfRooms});}finally{D.set.tc=svT[0];D.set.tn=svT[1];D.set.ta=svT[2];}g1.restore();g1.strokeStyle=NAVY;g1.lineWidth=3;g1.strokeRect(fx,fy,fw,fh);
+ g1.save();g1.beginPath();g1.rect(fx,fy,fw,fh);g1.clip();g1.translate(fx,fy);const og=opGroups(),svT=[D.set.tc,D.set.tn,D.set.ta];D.set.tc=11;D.set.tn=13;D.set.ta=11.5;try{drawPlan(g1,fw,fh,v,{C:CX,dims:'none',noUi:true,k:2.1,kt:1.8,noDot:true,exec:true,tags:D.set.tags?og.map:null,noRooms:!D.set.pdfRooms});}finally{D.set.tc=svT[0];D.set.tn=svT[1];D.set.ta=svT[2];}g1.restore();g1.strokeStyle=NAVY;g1.lineWidth=3;g1.strokeRect(fx,fy,fw,fh);
  g1.fillStyle=NAVY;g1.fillRect(fx+24,fy+fh-34,v.s,7);g1.font='600 22px system-ui,sans-serif';g1.textAlign='left';g1.textBaseline='bottom';g1.fillText('1 m',fx+24,fy+fh-42);
  chrome(g1,W1,H1,'PLAN — '+D.name);
  // page 2 : synthèse et quantités
@@ -1286,7 +1295,7 @@ let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;
 function fitNow(){const r=cv.parentElement.getBoundingClientRect(),v=view();fitView(v,r.width-58,r.height-10,S.mode==='plan'?50:30);v.ox+=58;}
 function refresh(){if(S.dupKey&&S.dupKey!==selKey())S.dupKey=null;renderCtx();updDupDir();$('#b-undo').disabled=!hist.length;$('#b-redo').disabled=!redo.length;draw();if(sheetOpen)refreshSheet();}
 $('#b-txt').onclick=()=>{const L=[.7,1,1.4,2],N=['petit','moyen','grand','très grand'];let i=L.findIndex(x=>Math.abs(x-(D.set.tc||11)/11)<.06);i=(i+1)%L.length;D.set.tc=Math.round(11*L[i]);D.set.tn=Math.round(13*L[i]);D.set.ta=Math.round(11.5*L[i]);touch();draw();toast('Texte : '+N[i]+' (réglage fin dans ☰ Réglages)');};
-$('#b-undo').onclick=undo;$('#b-redo').onclick=redoF;$('#b-zin').onclick=()=>zoomAt(1.3);$('#b-zout').onclick=()=>zoomAt(1/1.3);$('#b-dim').onclick=()=>{const o=['none','sel','all'],n=o[(o.indexOf(D.set.dm)+1)%3];D.set.dm=n;touch();draw();toast({none:'Cotes masquées',sel:'Cotes : seulement l\'élément touché',all:'Cotes : tous les murs'}[n]);};
+$('#b-undo').onclick=undo;$('#b-redo').onclick=redoF;$('#b-zin').onclick=()=>zoomAt(1.3);$('#b-zout').onclick=()=>zoomAt(1/1.3);$('#b-dim').onclick=()=>{const n=D.set.dm==='none'?'sel':'none';D.set.dm=n;touch();draw();toast({none:'Aide aux cotes masquée',sel:'Aide aux cotes : seulement l\'élément touché'}[n]);};
 $('#b-fit').onclick=()=>{fitNow();draw();};
 $('#pname').addEventListener('input',e=>{D.name=e.target.value||'Sans titre';touch();});
 function setMode(m){S.mode=m;S.tool=m==='plan'?'select':'pin';S.sel=null;S.chain=null;S.draft=null;hist=[];redo=[];
