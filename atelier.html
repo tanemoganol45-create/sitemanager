@@ -95,8 +95,9 @@ td.r,th.r{text-align:right;white-space:nowrap}
 <body>
 <div id="app">
   <header>
+    <button class="ib" id="b-back" aria-label="Retour aux projets" style="font-size:22px;font-weight:700;line-height:1">←</button>
     <button class="ib" id="b-menu" aria-label="Projets et réglages"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-    <input id="pname" aria-label="Nom du projet" autocomplete="off"><button class="ib" id="clb" aria-label="Synchronisation" style="color:#94a3b8;font-size:20px;line-height:1">☁</button>
+    <input id="pname" aria-label="Nom du projet" autocomplete="off">
     <div class="seg"><button id="m-plan" aria-pressed="true">Plan</button><button id="m-meet" aria-pressed="false">Réunion</button></div>
     <button class="ib" id="b-metres" aria-label="Métrés et coût"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2M16 11v4"/></svg></button>
   </header>
@@ -1066,7 +1067,7 @@ $('#sh-b').addEventListener('click',e=>{const b=e.target.closest('[data-sa]');if
  if(a==='save'){saveProject();refreshSheet();}
  else if(a==='cl-in'){CL.A.signInWithPopup(CL.auth,new CL.A.GoogleAuthProvider()).catch(()=>toast('Connexion annulée.'));}
  else if(a==='cl-out'){CL.A.signOut(CL.auth);}
- else if(a==='home'){closeSheet();if(S.dirty&&hasContent())saveProject(true);homeOpen('pj');}
+ else if(a==='home'){closeSheet();goHomeBtn();}
  else if(a==='new')newProject();
  else if(a==='dup'){const c=clone(D);c.pid=null;c.name=D.name+' (copie)';saveProject(true);loadDoc(c);saveProject(true);refreshSheet();toast('Projet dupliqué.');}
  else if(a==='sample'){if(hasContent())saveProject(true);loadDoc(sampleDoc());closeSheet();}
@@ -1123,7 +1124,7 @@ function metresSheet(){const m=metres(),pr=D.pr;
   ${[['agglo','Prix d\'un agglo (FCFA)'],['sac','Prix d\'un sac de ciment'],['barre','Prix d\'une barre de fer 12 mm'],['mo','Main d\'œuvre par m²'],['aggM2','Agglos par m² de mur'],['aggSac','Agglos par sac de ciment'],['barresPost','Barres de fer par poteau'],['bet','Sacs de ciment par m³ de béton']].map(([k,l])=>`<div class="sw"><span>${l}</span><input class="inp n" inputmode="decimal" data-pf="${k}" value="${pr[k]}"></div>`).join('')}</div>
  <button class="btn pri" style="width:100%" data-sa="res">Copier le résumé</button>`;}
 $('#b-metres').onclick=()=>{if(S.mode==='meet'){openSheet('Compte rendu de réunion',meetSheet);}else openSheet('Métrés et coût',metresSheet);};
-$('#b-menu').onclick=()=>openSheet('Projet et réglages',projectSheet);$('#clb').onclick=()=>openSheet('Synchronisation',projectSheet);
+$('#b-menu').onclick=()=>openSheet('Projet et réglages',projectSheet);
 function resumeText(){const m=metres();return `${D.name}\nMurs : ${fmt(m.L,2)} m (${m.n}) · surface nette ${fmt(m.net,1)} m²\nPièces : ${m.rooms.map(r=>r.name+' '+fmt(r.area,2)+' m²').join(' · ')||'—'} (total ${fmt(m.sRooms,2)} m²)\nAgglos : ${F0(m.agg)} × ${F0(D.pr.agglo)} FCFA\nSacs de ciment : ${m.sacsPose+m.sacsBet} × ${F0(D.pr.sac)} FCFA\nFer 12 mm : ${m.barres} barres × ${F0(D.pr.barre)} FCFA\nMain d'œuvre : ${fmt(m.surfMo,1)} m² × ${F0(D.pr.mo)} FCFA\nTOTAL ESTIMÉ : ${F0(m.c.tot)} FCFA\nEstimation indicative à vérifier.\n— ProCi-Arch`;}
 function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(()=>toast('Résumé copié.'),()=>fallbackCopy(t));else fallbackCopy(t);}
 function fallbackCopy(t){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('Résumé copié.');}catch(_){toast('Copie impossible.');}a.remove();}
@@ -1402,8 +1403,8 @@ function drHtml(){const plans=allPlans().filter(r=>pjOf(r)===H.pj&&(H.own?r.ow==
 function homeRender(){const h=$('#home');if(!h||h.hidden)return;const sc=h.querySelector('.hb');const top=sc?sc.scrollTop:0;h.innerHTML=H.view==='dr'?drHtml():pjHtml();const nb=h.querySelector('.hb');if(nb)nb.scrollTop=top;}
 function homeOpen(view){if(view)H.view=view;else H.view='pj';$('#home').hidden=false;homeRender();}
 function homeClose(){$('#home').hidden=true;}
-function newDessin(pj,pn){if(S.dirty&&hasContent())saveProject(true);loadDoc(newDoc('Nouveau dessin'));D.pj=pj;D.pjn=pn;S.pj=pj;S.pjn=pn;D.pid=null;saveProject(true);homeClose();toast('Nouveau dessin créé.');}
-function openPlan(id){const p=savedProjects()[id];if(!p)return;if(D.pid!==id&&S.dirty&&hasContent())saveProject(true);if(D.pid!==id){loadDoc(p.doc);D.pid=p.id;}S.pj=pjOf(p);S.pjn=pjNm(p);homeClose();}
+function newDessin(pj,pn){if(S.dirty&&hasContent())saveProject(true);loadDoc(newDoc('Nouveau dessin'));D.pj=pj;D.pjn=pn;S.pj=pj;S.pjn=pn;D.pid=null;saveProject(true);homeClose();pushEdit();toast('Nouveau dessin créé.');}
+function openPlan(id){const p=savedProjects()[id];if(!p)return;if(D.pid!==id&&S.dirty&&hasContent())saveProject(true);if(D.pid!==id){loadDoc(p.doc);D.pid=p.id;}S.pj=pjOf(p);S.pjn=pjNm(p);homeClose();pushEdit();}
 function renamePj(id,nm){const all=savedProjects(),ids=[];Object.values(all).forEach(r=>{if(r.doc&&pjOf(r)===id&&isMine(r)){r.doc.pjn=nm;r.ts=Date.now();ids.push(r.id);}});clWrite(all);const m=pjMap();if(m[id]){m[id].name=nm;pjSave(m);}if(D.pj===id)D.pjn=nm;ids.forEach(i=>clPushProj(all[i]));}
 function delPlan(id){const all=savedProjects();delete all[id];clWrite(all);clDel(id);if(D.pid===id){loadDoc(newDoc('Nouveau dessin'));D.pid=null;}}
 function jn(s){return(s||'export').replace(/[^\w\-]+/g,'_');}
@@ -1435,7 +1436,13 @@ $('#home').addEventListener('click',e=>{const b=e.target.closest('[data-h]');if(
  else if(a==='exall')exportAll();
  else if(a==='imp')$('#f-json').click();
  else if(a==='cl')clToggle();});
-$('#b-home').onclick=()=>{if(S.dirty&&hasContent())saveProject(true);H.view='pj';homeOpen();};
+function goHome(){if(S.dirty&&hasContent())saveProject(true);const r=savedProjects()[D.pid];
+ if(r){H.view='dr';H.pj=pjOf(r);H.pn=pjNm(r);H.own=(r.ow&&r.ow!==CL.user)?r.ow:'';S.pj=H.pj;S.pjn=H.pn;}else H.view='pj';
+ homeOpen(H.view);}
+function goHomeBtn(){if(!$('#home').hidden)return;if(S.hpush){S.hpush=false;try{history.back();return;}catch(e){}}goHome();}
+function pushEdit(){try{history.pushState({a2d:1},'');S.hpush=true;}catch(e){}}
+window.addEventListener('popstate',()=>{S.hpush=false;if($('#home').hidden){closeSheet();goHome();}});
+$('#b-home').onclick=goHomeBtn;$('#b-back').onclick=goHomeBtn;
 
 /* démarrage */
 (function init(){let d=null;try{d=JSON.parse(localStorage.getItem('a2d_draft')||'null');}catch(e){}
