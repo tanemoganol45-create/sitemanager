@@ -577,7 +577,7 @@ let raf=0;function draw(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;try
 if(S.loupe&&S.mode==='plan'){const L=S.loupe,r=66,lx=clamp(L.x,r+4,W-r-4);let ly=L.y-140;if(ly<r+8)ly=L.y+140;const z=2.4,v2={s:V.s*z,ox:lx-L.wx*V.s*z,oy:ly-L.wy*V.s*z};
   cx.save();cx.beginPath();cx.arc(lx,ly,r,0,7);cx.clip();drawPlan(cx,W,H,v2,{grid:D.set.grid,dims:D.set.dm});cx.restore();
   cx.strokeStyle='#0284c7';cx.lineWidth=3;cx.beginPath();cx.arc(lx,ly,r,0,7);cx.stroke();cx.strokeStyle='rgba(2,132,199,.9)';cx.lineWidth=1.5;cx.beginPath();cx.moveTo(lx-14,ly);cx.lineTo(lx+14,ly);cx.moveTo(lx,ly-14);cx.lineTo(lx,ly+14);cx.stroke();}
- const v=view();$('#info').textContent=(S.mode==='plan'?'Zoom '+Math.round(v.s/60*100)+' %  ·  1 m = '+Math.round(v.s)+' px':'Zoom '+Math.round(v.s/30*100)+' %');});}
+ const v=view();$('#info').textContent=ATELIER_VER+'  ·  '+(S.mode==='plan'?'Zoom '+Math.round(v.s/60*100)+' %  ·  1 m = '+Math.round(v.s)+' px':'Zoom '+Math.round(v.s/30*100)+' %');});}
 
 /* ---------- sélection / hit-test ---------- */
 function getSel(){if(!S.sel)return null;const k=S.sel.k,id=S.sel.id;
@@ -676,6 +676,7 @@ function npOpen(title,val,ok,tog){let el=document.getElementById('np');
 
 function axPts(q,m){const sg=Math.sign(q.d)||1;let a=q.A,b=q.B,v=Math.abs(q.d);if(m==='net'){a=[q.A[0]+q.n[0]*sg*q.ho,q.A[1]+q.n[1]*sg*q.ho];b=[q.B[0]-q.n[0]*sg*q.hc,q.B[1]-q.n[1]*sg*q.hc];v=v-q.ho-q.hc;}return{a,b,v,mid:[(a[0]+b[0])/2,(a[1]+b[1])/2]};}
 function axM(){const k=selKey();return S.axSet&&S.axSet.key===k?S.axSet.m:(S.dupKey===k?'axe':'net');}
+const ATELIER_VER='Atelier V26.1 · 27 nov';
 function alignTargets(skip){const X=[],Y=[];D.walls.forEach(q=>{if(skip.has(q))return;const h=q.t/2;X.push({v:q.x1,k:'b'},{v:q.x2,k:'b'});Y.push({v:q.y1,k:'b'},{v:q.y2,k:'b'});if(Math.abs(q.x2-q.x1)<.02){const a=(q.x1+q.x2)/2;X.push({v:a,k:'a'},{v:a-h,k:'f'},{v:a+h,k:'f'});}if(Math.abs(q.y2-q.y1)<.02){const a=(q.y1+q.y2)/2;Y.push({v:a,k:'a'},{v:a-h,k:'f'},{v:a+h,k:'f'});}});return{X,Y};}
 function wallFeats(c,t){const X=[{v:c[0],k:'b'},{v:c[2],k:'b'}],Y=[{v:c[1],k:'b'},{v:c[3],k:'b'}],h=t/2;if(Math.abs(c[2]-c[0])<.02){const a=(c[0]+c[2])/2;X.push({v:a,k:'a'},{v:a-h,k:'f'},{v:a+h,k:'f'});}if(Math.abs(c[3]-c[1])<.02){const a=(c[1]+c[3])/2;Y.push({v:a,k:'a'},{v:a-h,k:'f'},{v:a+h,k:'f'});}return{X,Y};}
 function bestAl(F,T,tol,any){let b=null;F.forEach(f=>T.forEach(g=>{if(!any&&f.k!==g.k)return;const d=g.v-f.v;if(Math.abs(d)<tol&&(b===null||Math.abs(d)<Math.abs(b)))b=d;}));return b;}
@@ -1556,7 +1557,7 @@ function pjCard(g,team){return `<div class="hc" data-h="pj" data-id="${esc(g.id)
 function pjHtml(){const mine=pjGroups(false),team=pjGroups(true);
  const last=allPlans().filter(r=>r.doc.walls.length||(r.doc.posts&&r.doc.posts.length)).sort((a,b)=>b.ts-a.ts)[0];
  const on=CL.mode==='cloud';
- return `<div class="hh">${FROM_SM?'<a class="btn sm" href="./" style="text-decoration:none;color:var(--tx)">← SITE MANAGER</a>':''}<h1>Projets</h1><button class="ib" data-h="cl" style="color:${on?'#16a34a':'#94a3b8'};font-size:18px;width:auto;padding:0 10px">${on?'☁✓':'☁'}</button></div>
+ return `<div class="hh">${FROM_SM?'<a class="btn sm" href="./" style="text-decoration:none;color:var(--tx)">← SITE MANAGER</a>':''}<h1>Projets</h1><span style="margin-left:auto;margin-right:8px;font-size:11px;font-weight:700;color:#fff;background:#0a4a6e;border-radius:999px;padding:3px 9px;white-space:nowrap">${ATELIER_VER}</span><button class="ib" data-h="cl" style="color:${on?'#16a34a':'#94a3b8'};font-size:18px;width:auto;padding:0 10px">${on?'☁✓':'☁'}</button></div>
  <div class="hb"><div class="hbar"><button class="btn pri" data-h="npj">+ Créer un projet</button><button class="btn" data-h="imp">Importer un fichier</button><button class="btn" data-h="exall">Tout sauvegarder (.json)</button></div>
  ${last?`<div class="hc" data-h="open" data-id="${esc(last.id)}" style="cursor:pointer;border-color:var(--pri)"><div class="tt"><small>Continuer</small><b>${esc(last.name)}</b><small>${esc(pjNm(last))} · ${dstr(last.ts)}</small></div><span style="font-size:18px">▶</span></div>`:''}
  ${mine.map(g=>pjCard(g)).join('')||'<div class="note">Aucun projet pour l’instant. Touche « Créer un projet ».</div>'}
